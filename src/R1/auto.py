@@ -11,9 +11,11 @@ left_drive_smart = MotorGroup(left_motor_a, left_motor_b)
 right_motor_a = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
 right_motor_b = Motor(Ports.PORT4, GearSetting.RATIO_18_1, True)
 right_drive_smart = MotorGroup(right_motor_a, right_motor_b)
+accepter = Motor(Ports.PORT7, GearSetting.RATIO_18_1, True)
+arm = Motor(Ports.PORT8, GearSetting.RATIO_18_1, False)
 drivetrain_gps = Gps(Ports.PORT11, 0.00, -40.00, MM, 0)
 driver = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_gps, 319.19, 320, 40, MM, 1)
-driver.set_drive_velocity(70, PERCENT)
+driver.set_drive_velocity(65, PERCENT)
 driver.set_turn_velocity(15, PERCENT)
 driver.set_stopping(COAST)
 left_wing = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
@@ -23,6 +25,9 @@ wings.set_max_torque(100,PERCENT)
 wings.set_velocity(40,PERCENT)
 wings.set_timeout(1,SECONDS)
 is_arrived = False 
+global is_wings_open
+is_wings_open = False
+
 
 class Axis:
     def __init__(self):
@@ -50,12 +55,22 @@ class Axis:
             else:
                 self.quadrant = 3
 
-    def info(self):
+    def set_target(self, x, y):
+        self.x0 = x
+        self.y0 = y
+        self.update()
+
+    def update(self):
         self.set_quadrant()
         self.set_theta()
         self.position()
+
+    def info(self):
+        self.update()
         brain.screen.clear_screen()
         brain.screen.set_cursor(1, 1)
+        brain.screen.print('x0: ',self.x0, 'y0: ',self.y0)
+        brain.screen.next_row()
         brain.screen.print('x: ',self.x)
         brain.screen.next_row()
         brain.screen.print('y: ',self.y)
@@ -67,6 +82,7 @@ class Axis:
         brain.screen.print('theta:' , self.theta)
         brain.screen.next_row()
         brain.screen.print('correct: ' , self.correct_angle_in_radian)
+        brain.screen.next_row()
         wait(0.3,SECONDS)
 
     def set_theta(self):
@@ -85,48 +101,48 @@ class Axis:
         else:
             self.theta = 270 + self.correct_angle_in_radian
 
-def adjust_direction(axis):
-    driver.turn_to_heading(axis.theta,DEGREES)
+def adjust_direction(angles):
+    if not(axis.head < angles + 10 and axis.head > angles -10):
+        driver.turn_to_heading(angles,DEGREES)
 
 def open_wings():
-    wings.spin_for(FORWARD,200,DEGREES)
+    global is_wings_open
+    if is_wings_open:
+        pass
+    else:
+        wings.spin_for(FORWARD, 200, DEGREES)
+        is_wings_open = not is_wings_open    
 
 def close_wings():
-    wings.spin_for(REVERSE,200,DEGREES)
+    global is_wings_open
+    if is_wings_open:
+        wings.spin_for(REVERSE, 200, DEGREES)
+        is_wings_open = not is_wings_open    
+    
 
 axis = Axis()
 
-# open_wings()
-# wait(3,SECONDS)
-# close_wings()
 drivetrain_gps.calibrate()
-wait(0.3,SECONDS)
+wait(0.5,SECONDS)
+
 while True:
-    
     axis.info()
     if not is_arrived:
         if axis.x > 300:
-            if not(axis.head < axis.theta + 2 and axis.head > axis.theta -2):
-                adjust_direction(axis)
-            axis.x0 = 0
-            axis.y0 = 0
+            axis.set_target(100, 0)
+            adjust_direction(axis.theta)
             driver.drive(FORWARD)
-        elif axis.x > -700 :
-            axis.info()
-            if axis.x < 100:
-                open_wings()
-            # if axis.y < -50 :
-            #     driver.drive_for(REVERSE, 200, MM)
-            if not(axis.head < 272 and axis.head > 268):
-                driver.turn_to_heading(270,DEGREES)
-            if axis.x < -300:
-                driver.set_drive_velocity(85, PERCENT)
-                driver.drive_for(500,MM)
-            axis.x0 = -1100
-            axis.y0 = 0
+        elif axis.x > -200:
+            adjust_direction(270)
+            open_wings()
+            driver.drive_for(FORWARD, 700, MM)
+        elif axis.x > -600:
+            axis.set_target(-1100, 0)
+            adjust_direction(axis.theta)
             driver.drive(FORWARD)
         else:
+            adjust_direction(270)
+            driver.drive_for(FORWARD, 1000, MM)
             is_arrived = True
-            
     else:
         driver.stop()
