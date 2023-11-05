@@ -47,20 +47,28 @@ while True:
     right_velocity = 0
     v = controller.axis3.position()
     h = controller.axis4.position()
-
-    if v > 0:
+    if v > 10:
         left_velocity = v
         right_velocity = v
-        if h > 0:
+        if h > 10:
             left_velocity += abs(h)
-        else:
+        elif h < -10:
             right_velocity += abs(h)
+        else:
+            pass
         left_wheels.set_velocity(left_velocity, RPM)
         right_wheels.set_velocity(right_velocity, RPM)
         left_wheels.spin(FORWARD)
         right_wheels.spin(FORWARD)
+    elif v < -10:
+        driver.drive(REVERSE)
     else:
-        driver.stop()
+        if h > 10:
+            driver.turn(RIGHT)
+        elif h < -10:
+            driver.turn(LEFT)
+        else:
+            driver.stop()
 
     if controller.buttonA.pressing():
         if is_wings_open:
