@@ -56,12 +56,12 @@ while True:
             right_velocity += abs(h)
         else:
             pass
-        left_wheels.set_velocity(left_velocity, RPM)
-        right_wheels.set_velocity(right_velocity, RPM)
+        left_wheels.set_velocity(left_velocity * 1.3, RPM)
+        right_wheels.set_velocity(right_velocity * 1.3, RPM)
         left_wheels.spin(FORWARD)
         right_wheels.spin(FORWARD)
     elif v < -10:
-        driver.drive(REVERSE)
+        driver.drive(REVERSE, 120, RPM)
     else:
         if h > 10:
             driver.turn(RIGHT)
@@ -81,7 +81,6 @@ while True:
     else:
         wings.stop()
     
-
     if controller.buttonR1.pressing():
         accepter.spin(FORWARD)
     elif controller.buttonR2.pressing():
