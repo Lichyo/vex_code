@@ -6,11 +6,11 @@ controller = Controller()
 # driving declaration
 left_motor_a = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
 left_motor_b = Motor(Ports.PORT2, GearSetting.RATIO_18_1, False)
-left_drive_smart = MotorGroup(left_motor_a, left_motor_b)
+left_wheels = MotorGroup(left_motor_a, left_motor_b)
 right_motor_a = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
 right_motor_b = Motor(Ports.PORT4, GearSetting.RATIO_18_1, True)
-right_drive_smart = MotorGroup(right_motor_a, right_motor_b)
-driver = DriveTrain(left_drive_smart, right_drive_smart, 319.19, 295, 40, MM, 1)
+right_wheels = MotorGroup(right_motor_a, right_motor_b)
+driver = DriveTrain(left_wheels, right_wheels, 319.19, 295, 40, MM, 1)
 
 # fixing objects devices
 accepter = Motor(Ports.PORT7, GearSetting.RATIO_18_1, True)
@@ -21,44 +21,44 @@ wing2 = Motor(Ports.PORT14, GearSetting.RATIO_18_1, False)
 wings = MotorGroup(wing1,wing2)
 
 # setup
-driver_mode = False
+driver_speed_up = False
 driver.set_stopping(COAST)
 driver.set_drive_velocity(60, PERCENT)
+
 is_wings_open = False
 wings.set_max_torque(90, PERCENT)
 wings.set_velocity(30,PERCENT)
 wings.set_timeout(1,SECONDS)
+
 accepter.set_velocity(80, PERCENT)
 arm.set_stopping(HOLD)
 
 while True:
 
-    # if controller.buttonA.pressing():
-    #     if drive_mode != driving_mode.normal:
-    #         drive_mode = driving_mode.normal
-    #         driver.set_drive_velocity(50,PERCENT)
-    #     elif drive_mode != driving_mode.speed_up:
-    #         drive_mode = driving_mode.speed_up
-    #         driver.set_drive_velocity(50,PERCENT)
-    
-    axis_horizontal = controller.axis4.position()
-    axis_vertical = controller.axis3.position()
+    if controller.buttonB.pressing():
+        if driver_speed_up:
+            driver.set_drive_velocity(50,PERCENT)
+            driver_speed_up = False
+        else:
+            driver.set_drive_velocity(80, PERCENT)
+            driver_speed_up = True
 
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1,1)
-    brain.screen.print('axis_horizontal: ',axis_horizontal)
-    brain.screen.next_row()
-    brain.screen.print('axis_vertical: ',axis_vertical)
-    brain.screen.next_row()
-    # wait(0.5, SECONDS)
-    if axis_horizontal > 10:
-        driver.turn(RIGHT)
-    elif axis_horizontal < -10:
-        driver.turn(LEFT)
-    elif axis_vertical > 15:
-        driver.drive(FORWARD)
-    elif axis_vertical < -15:
-        driver.drive(REVERSE)
+    left_velocity = 0
+    right_velocity = 0
+    v = controller.axis3.position()
+    h = controller.axis4.position()
+
+    if v > 0:
+        left_velocity = v
+        right_velocity = v
+        if h > 0:
+            left_velocity += abs(h)
+        else:
+            right_velocity += abs(h)
+        left_wheels.set_velocity(left_velocity, RPM)
+        right_wheels.set_velocity(right_velocity, RPM)
+        left_wheels.spin(FORWARD)
+        right_wheels.spin(FORWARD)
     else:
         driver.stop()
 

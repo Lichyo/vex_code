@@ -58,6 +58,7 @@ while True:
             prepared = True
     else:
         pass
+    
     left_velocity = 0
     right_velocity = 0
     v = controller.axis3.position()
