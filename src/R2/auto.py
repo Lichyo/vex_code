@@ -18,41 +18,52 @@ throw_1 = Motor(Ports.PORT4, GearSetting.RATIO_36_1, False)
 throw_2 = Motor(Ports.PORT3, GearSetting.RATIO_36_1, True)
 throw= MotorGroup(throw_1, throw_2)
 throw.set_stopping(HOLD)
-throw.set_velocity(35, PERCENT)#25
+throw.set_velocity(35, PERCENT)
 throw.set_max_torque(100, PERCENT)
 stretch.set_velocity(90, PERCENT)
 stretch.set_stopping(COAST)
-global is_stretching
-global prepared
 
-prepared = False
-is_stretching = False
+class Accepter:
+    def __init__(self):
+        self.prepared = False
+        self.is_stretching = False
+    
+    def throw_prepare(self):
+        throw.spin_for(FORWARD, 165, DEGREES)
 
-def throw_prepare():
-    throw.spin_for(FORWARD, 165, DEGREES)
+    def stretch_prepare(self):
+        if self.is_stretching:
+            pass
+        else:
+            self.is_stretching = True
+            stretch.spin_for(FORWARD, 900, DEGREES)
+    
+    def prepare(self):
+        if self.is_stretching:
+           self.set_stop()
+        else:
+            Thread(self.throw_prepare)
+            self.stretch_prepare()
+            self.prepared = True
+        
 
-def stretch_prepare():
-    stretch.spin_for(FORWARD, 900, DEGREES)
- 
-def prepare():
-    global prepared
-    Thread(throw_prepare)
-    Thread(stretch_prepare)
-    prepared = True
+    def set_stop(self):
+        throw.stop()
+        stretch.stop()
 
-def set_stop():
-    throw.stop()
-    stretch.stop()
-
-def shoot():
-    global prepared
-    stretch.spin_for(REVERSE, 900, DEGREES)
-    throw.spin_for(FORWARD, 195, DEGREES)
-    prepared = False
-
+    def shoot(self):
+        if self.prepared:
+            stretch.spin_for(REVERSE, 900, DEGREES)
+            throw.spin_for(FORWARD, 195, DEGREES)
+            self.prepared = False
+            self.is_stretching = False
+        else:
+            self.set_stop()
+            
+accepter = Accepter()
 while True:
-    if not prepared:
-        prepare()
+    if not accepter.prepared:
+        accepter.prepare()
     else:
         objects = vision.take_snapshot(vision_1__SIG_1)
         if objects == None:
@@ -60,4 +71,4 @@ while True:
         else:
             objects = vision.largest_object()
             if objects.height > 30 and objects.width > 50:
-                shoot()
+                accepter.shoot()
