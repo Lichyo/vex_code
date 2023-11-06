@@ -1,8 +1,9 @@
 from vex import *
 
 brain=Brain()
-vision_1__SIG_1 = Signature(1, -4789, -4193, -4492,-5041, -4557, -4800,3.9, 0)
-vision_1 = Vision(Ports.PORT1, 50, vision_1__SIG_1)
+
+vision_20__SIG_1 = Signature(1, -6525, -6011, -6268,-5617, -5049, -5334,11, 0)
+vision = Vision(Ports.PORT20, 50, vision_20__SIG_1)
 controller = Controller()
 
 left_motor_a = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
@@ -27,6 +28,48 @@ wings.set_timeout(1,SECONDS)
 is_arrived = False 
 global is_wings_open
 is_wings_open = False
+
+def closing_object(center_x):
+    if center_x < 120:
+        driver.turn_for(LEFT, 5,DEGREES)
+        driver.drive(FORWARD,45)
+    elif center_x > 160:
+        driver.turn_for(RIGHT, 5, DEGREES)
+        driver.drive(FORWARD,45)
+    else : 
+        driver.drive(FORWARD, 55)
+
+    
+
+def shooting():
+    objects = vision.take_snapshot(0)
+    if objects == None:
+        pass
+    else:
+        brain.screen.clear_screen()
+        brain.screen.set_cursor(1,1)
+        objects = vision.largest_object()
+        center_x = objects.centerX
+        w = objects.width 
+        h = objects.height
+        brain.screen.print('w : ', w)
+        brain.screen.next_row()
+        brain.screen.print('h : ', h)
+        brain.screen.next_row()
+        brain.screen.print('x : ', center_x)
+
+        # if w > 250 and h > 110:
+        #     driver.turn_to_heading(270)
+        #     accepter.spin(REVERSE)
+        #     driver.turn_to_heading(180)
+        # elif w > 20 and h > 20:
+        #     accepter.spin(FORWARD)
+        #     closing_object(center_x)
+        # else :
+        #     driver.turn(LEFT)
+        #     accepter.stop()
+        #     # driver.drive(FORWARD)
+            
 
 
 class Axis:
@@ -126,23 +169,7 @@ drivetrain_gps.calibrate()
 wait(0.5,SECONDS)
 
 while True:
-    axis.info()
-    if not is_arrived:
-        if axis.x > 300:
-            axis.set_target(100, 0)
-            adjust_direction(axis.theta)
-            driver.drive(FORWARD)
-        elif axis.x > -200:
-            adjust_direction(270)
-            open_wings()
-            driver.drive_for(FORWARD, 700, MM)
-        elif axis.x > -600:
-            axis.set_target(-1100, 0)
-            adjust_direction(axis.theta)
-            driver.drive(FORWARD)
-        else:
-            adjust_direction(270)
-            driver.drive_for(FORWARD, 1000, MM)
-            is_arrived = True
-    else:
-        driver.stop()
+    # axis.info()
+    shooting()
+    # wait(0.3, SECONDS)
+
