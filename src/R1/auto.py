@@ -25,53 +25,77 @@ wings = MotorGroup(left_wing, right_wing)
 wings.set_max_torque(100,PERCENT)
 wings.set_velocity(40,PERCENT)
 wings.set_timeout(1,SECONDS)
+driver.set_drive_velocity(10, PERCENT)
+driver.set_turn_velocity(5, PERCENT)
+accepter.set_velocity(80, PERCENT)
+driver.set_timeout(2, SECONDS)
 is_arrived = False 
 global is_wings_open
 is_wings_open = False
 
+
+class AccepterStatus:
+    def __init__(self):
+        self.forward = 0
+        self.release = 1
+        self.stop = 2
+        self.status = self.stop
+        
+    def accepter_activated(self):
+        if self.status == accepter_status.forward:
+            accepter.spin(FORWARD)
+        elif self.status == accepter_status.release:
+            Thread(lambda:accepter.spin_for(REVERSE, 5, TURNS))
+            driver.drive_for(FORWARD,200,MM)
+        else:
+            accepter.stop() 
+
+accepter_status = AccepterStatus()  
+
 def closing_object(center_x):
     if center_x < 120:
-        driver.turn_for(LEFT, 5,DEGREES)
-        driver.drive(FORWARD,45)
+        driver.turn_for(LEFT, 2,DEGREES)
+        driver.drive(FORWARD,30)
     elif center_x > 160:
-        driver.turn_for(RIGHT, 5, DEGREES)
-        driver.drive(FORWARD,45)
+        driver.turn_for(RIGHT, 2, DEGREES)
+        driver.drive(FORWARD,30)
     else : 
-        driver.drive(FORWARD, 55)
+        driver.drive(FORWARD, 30)
 
-    
 
-def shooting():
+
+def shooting(accepter_status):
     objects = vision.take_snapshot(0)
     if objects == None:
         pass
     else:
-        brain.screen.clear_screen()
-        brain.screen.set_cursor(1,1)
+        # brain.screen.clear_screen()
+        # brain.screen.set_cursor(1,1)
         objects = vision.largest_object()
         center_x = objects.centerX
         w = objects.width 
         h = objects.height
-        brain.screen.print('w : ', w)
-        brain.screen.next_row()
-        brain.screen.print('h : ', h)
-        brain.screen.next_row()
-        brain.screen.print('x : ', center_x)
+        # brain.screen.print('w : ', w)
+        # brain.screen.next_row()
+        # brain.screen.print('h : ', h)
+        # brain.screen.next_row()
+        # brain.screen.print('x : ', center_x)
 
-        # if w > 250 and h > 110:
-        #     driver.turn_to_heading(270)
-        #     accepter.spin(REVERSE)
-        #     driver.turn_to_heading(180)
-        # elif w > 20 and h > 20:
-        #     accepter.spin(FORWARD)
-        #     closing_object(center_x)
-        # else :
-        #     driver.turn(LEFT)
-        #     accepter.stop()
-        #     # driver.drive(FORWARD)
+        if w > 200 and h > 90:
+            driver.turn_to_heading(270)
+            driver.drive_for(FORWARD, 150, MM)
+            driver.turn_to_heading(270)
+            Thread(lambda:accepter.spin_for(REVERSE,1,TURNS))
+            driver.drive_for(REVERSE, 300, MM)
+            accepter_status.status = accepter_status.release
+        elif w > 20 and h > 20:
+            accepter_status.status = accepter_status.forward
+            accepter.spin(FORWARD)
+            closing_object(center_x)
+        else :
+            accepter_status.status = accepter_status.stop
+            driver.turn(LEFT)
             
-
-
 class Axis:
     def __init__(self):
         self.x0 = -1100
@@ -169,7 +193,6 @@ drivetrain_gps.calibrate()
 wait(0.5,SECONDS)
 
 while True:
-    # axis.info()
-    shooting()
-    # wait(0.3, SECONDS)
-
+    axis.info()
+    accepter_status.accepter_activated()
+    shooting(accepter_status)
