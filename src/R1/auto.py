@@ -54,11 +54,9 @@ accepter_status = AccepterStatus()
 
 def closing_object(center_x):
     if center_x < 120:
-        driver.turn_for(LEFT, 2,DEGREES)
-        driver.drive(FORWARD,30)
+        driver.turn(LEFT)
     elif center_x > 160:
-        driver.turn_for(RIGHT, 2, DEGREES)
-        driver.drive(FORWARD,30)
+        driver.turn(RIGHT)
     else : 
         driver.drive(FORWARD, 30)
 
