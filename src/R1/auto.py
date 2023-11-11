@@ -18,7 +18,7 @@ drivetrain_gps = Gps(Ports.PORT11, 0.00, -40.00, MM, 0)
 driver = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_gps, 319.19, 320, 40, MM, 1)
 
 driver.set_drive_velocity(50, PERCENT)
-driver.set_turn_velocity(5, PERCENT)
+driver.set_turn_velocity(15, PERCENT)
 driver.set_stopping(COAST)
 driver.set_timeout(3, SECONDS)
 
@@ -36,6 +36,8 @@ is_wings_open = False
 global status
 status = 'stop'
 
+global timeout 
+timeout = False
 class Axis:
     def __init__(self):
         self.x0 = -1100
@@ -73,24 +75,25 @@ class Axis:
         self.position()
 
     def info(self):
-        self.update()
-        brain.screen.clear_screen()
-        brain.screen.set_cursor(1, 1)
-        brain.screen.print('x0: ',self.x0, 'y0: ',self.y0)
-        brain.screen.next_row()
-        brain.screen.print('x: ',self.x)
-        brain.screen.next_row()
-        brain.screen.print('y: ',self.y)
-        brain.screen.next_row()
-        brain.screen.print('head: ',self.head)
-        brain.screen.next_row()
-        brain.screen.print('quadrant: ',self.quadrant)
-        brain.screen.next_row()
-        brain.screen.print('theta:' , self.theta)
-        brain.screen.next_row()
-        brain.screen.print('correct: ' , self.correct_angle_in_radian)
-        brain.screen.next_row()
-        wait(0.3,SECONDS)
+        while True:
+            self.update()
+            brain.screen.clear_screen()
+            brain.screen.set_cursor(1, 1)
+            brain.screen.print('x0: ',self.x0, 'y0: ',self.y0)
+            brain.screen.next_row()
+            brain.screen.print('x: ',self.x)
+            brain.screen.next_row()
+            brain.screen.print('y: ',self.y)
+            brain.screen.next_row()
+            brain.screen.print('head: ',self.head)
+            brain.screen.next_row()
+            brain.screen.print('quadrant: ',self.quadrant)
+            brain.screen.next_row()
+            brain.screen.print('theta:' , self.theta)
+            brain.screen.next_row()
+            brain.screen.print('correct: ' , self.correct_angle_in_radian)
+            brain.screen.next_row()
+            wait(0.3,SECONDS)
 
     def set_theta(self):
         self.set_quadrant
@@ -98,21 +101,39 @@ class Axis:
         cos = self.a/self.b
         self.correct_angle_in_radian = math.acos(cos)
         self.correct_angle_in_radian = math.degrees(self.correct_angle_in_radian)
-    
-        if self.quadrant == 1:
-            self.theta = 270 - self.correct_angle_in_radian
-        elif self.quadrant == 2:
-            self.theta = 270 - self.correct_angle_in_radian
-        elif self.quadrant == 3:
-            self.theta = 270 + self.correct_angle_in_radian
+        if self.x < self.x0:
+            if self.quadrant == 1:
+                self.theta = 90 + self.correct_angle_in_radian
+            elif self.quadrant == 2:
+                self.theta = 90 + self.correct_angle_in_radian
+            elif self.quadrant == 3:
+                self.theta = 90 - self.correct_angle_in_radian
+            else:
+                self.theta = 90 - self.correct_angle_in_radian
         else:
-            self.theta = 270 + self.correct_angle_in_radian
+            if self.quadrant == 1:
+                self.theta = 270 - self.correct_angle_in_radian
+            elif self.quadrant == 2:
+                self.theta = 270 - self.correct_angle_in_radian
+            elif self.quadrant == 3:
+                self.theta = 270 + self.correct_angle_in_radian
+            else:
+                self.theta = 270 + self.correct_angle_in_radian
+    def check_location(self):
+        # self.update()
+        if (axis.x < axis.x0 + 100 and axis.x > axis.x0 - 100) and (axis.y > axis.y0 -100 and axis.y < axis.y0 +100):
+            return True
+        else:
+            return False
 
 ####################################################################################
 
 def adjust_direction(angles):
     if not(axis.head < angles + 10 and axis.head > angles -10):
         driver.turn_to_heading(angles,DEGREES)
+    
+    # else:
+        # driver.stop()
 
 def open_wings():
     global is_wings_open
@@ -141,9 +162,9 @@ def closing_object(center_x):
 
 def shooting():
     global status
-    objects = vision.take_snapshot(0)
+    objects = vision.take_snapshot(vision_20__SIG_1)
     if objects == None:
-        pass
+        finding_object()
     else:
         objects = vision.largest_object()
         center_x = objects.centerX
@@ -160,6 +181,7 @@ def shooting():
 def finding_object():
     global status
     status = 'forward'
+    driver.drive_for(FORWARD, 30, MM)
     driver.turn(LEFT, 15, PERCENT)   
             
 def grabbing(center_x):
@@ -169,9 +191,6 @@ def grabbing(center_x):
             
 def bouncing():
     global status
-    driver.turn_to_heading(270)
-    driver.turn_to_heading(270)
-    driver.turn_to_heading(270)
     driver.turn_to_heading(270)
     driver.drive_for(FORWARD, 200, MM)
     accepter.spin_for(REVERSE,2,TURNS)
@@ -186,16 +205,53 @@ def accepter_activated():
         Thread(lambda:accepter.spin_for(REVERSE, 5, TURNS))
     else:
         accepter.stop() 
-            
-
-    
 
 axis = Axis()
-
 drivetrain_gps.calibrate()
-wait(0.5,SECONDS)
+wait(0.2,SECONDS)
 
-while True:
-    axis.info()
-    accepter_activated()
-    shooting()
+def cross_line():
+    driver.set_timeout(10,SECONDS)
+    axis.set_target(500, 0)
+    axis.set_theta()
+    
+    while not axis.check_location():
+        axis.set_theta()
+        adjust_direction(axis.theta)
+        driver.drive(FORWARD)
+    driver.stop()
+    brain.screen.print('break')
+
+    driver.turn_to_heading(90)
+    axis.set_target(-800,0)
+    driver.turn_to_heading(90)
+    # axis.update()
+    while not(axis.check_location()):
+        driver.drive(REVERSE)
+        # axis.update()
+        if axis.x < -400:
+            driver.turn_to_heading(270)
+            open_wings()
+            driver.set_drive_velocity(60,PERCENT)
+            driver.turn_to_heading(270)
+            driver.drive_for(FORWARD,1000,MM)
+            break
+            
+        
+        
+def timer():
+    global timeout
+    wait(30,SECONDS)
+    timeout = True
+
+Thread(lambda:axis.info())
+# Thread(lambda: timer())
+# while True:
+    # axis.info()
+    # if timeout:
+cross_line()
+# driver.drive(FORWARD)
+    # else:
+    #     axis.info()
+    #     accepter_activated()
+    #     shooting()
