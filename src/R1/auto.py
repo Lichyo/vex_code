@@ -16,11 +16,12 @@ accepter = Motor(Ports.PORT7, GearSetting.RATIO_18_1, True)
 arm = Motor(Ports.PORT8, GearSetting.RATIO_18_1, False)
 drivetrain_gps = Gps(Ports.PORT11, 0.00, -40.00, MM, 0)
 driver = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_gps, 319.19, 320, 40, MM, 1)
+arm.set_stopping(COAST)
 
 driver.set_drive_velocity(50, PERCENT)
 driver.set_turn_velocity(15, PERCENT)
 driver.set_stopping(COAST)
-driver.set_timeout(3, SECONDS)
+driver.set_timeout(5, SECONDS)
 
 left_wing = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
 right_wing = Motor(Ports.PORT14, GearSetting.RATIO_18_1, True)
@@ -93,7 +94,7 @@ class Axis:
             brain.screen.next_row()
             brain.screen.print('correct: ' , self.correct_angle_in_radian)
             brain.screen.next_row()
-            wait(0.3,SECONDS)
+            wait(0.1,SECONDS)
 
     def set_theta(self):
         self.set_quadrant
@@ -120,20 +121,21 @@ class Axis:
             else:
                 self.theta = 270 + self.correct_angle_in_radian
     def check_location(self):
-        # self.update()
         if (axis.x < axis.x0 + 100 and axis.x > axis.x0 - 100) and (axis.y > axis.y0 -100 and axis.y < axis.y0 +100):
             return True
         else:
             return False
+    def move_to_target(self, direction):
+        while not axis.check_location():
+            self.set_theta()
+            adjust_direction(self.theta)
+            driver.drive(direction)
 
 ####################################################################################
 
 def adjust_direction(angles):
     if not(axis.head < angles + 10 and axis.head > angles -10):
         driver.turn_to_heading(angles,DEGREES)
-    
-    # else:
-        # driver.stop()
 
 def open_wings():
     global is_wings_open
@@ -151,12 +153,12 @@ def close_wings():
 
 
 def closing_object(center_x):
-    if center_x < 100:
+    if center_x < 110:
         driver.turn(LEFT, 5, PERCENT)
-    elif center_x > 190:
+    elif center_x > 180:
         driver.turn(RIGHT, 5, PERCENT)
     else : 
-        driver.drive(FORWARD, 30, PERCENT)
+        driver.drive(FORWARD)
 
 
 
@@ -171,9 +173,9 @@ def shooting():
         w = objects.width 
         h = objects.height
         
-        if w > 200 and h > 90:
+        if w > 210 and h > 110:
             bouncing()
-        elif w > 10 and h > 10:
+        elif w > 30 and h > 30:
             grabbing(center_x)
         else :
             finding_object()
@@ -187,7 +189,7 @@ def finding_object():
 def grabbing(center_x):
     global status
     status = 'forward'
-    closing_object(center_x)            
+    closing_object(center_x)        
             
 def bouncing():
     global status
@@ -195,6 +197,7 @@ def bouncing():
     driver.drive_for(FORWARD, 200, MM)
     accepter.spin_for(REVERSE,2,TURNS)
     driver.drive_for(REVERSE, 500, MM)
+    driver.turn_to_heading(245)
     status = 'release'
             
 def accepter_activated():
@@ -208,50 +211,75 @@ def accepter_activated():
 
 axis = Axis()
 drivetrain_gps.calibrate()
-wait(0.2,SECONDS)
+wait(0.3,SECONDS)
 
 def cross_line():
-    driver.set_timeout(10,SECONDS)
+    accepter.stop()
+    arm.spin_for(REVERSE, 270, DEGREES)
+    arm.stop()
+    driver.set_timeout(5,SECONDS)
     axis.set_target(500, 0)
     axis.set_theta()
-    
-    while not axis.check_location():
-        axis.set_theta()
-        adjust_direction(axis.theta)
-        driver.drive(FORWARD)
+    driver.set_drive_velocity(60, PERCENT)
+    axis.move_to_target(FORWARD)
     driver.stop()
-    brain.screen.print('break')
-
+    axis.update()
+    driver.turn_to_heading(90)
+    wait(0.1, SECONDS)
     driver.turn_to_heading(90)
     axis.set_target(-800,0)
     driver.turn_to_heading(90)
-    # axis.update()
     while not(axis.check_location()):
-        driver.drive(REVERSE)
-        # axis.update()
-        if axis.x < -400:
+        driver.drive_for(REVERSE,500,MM)
+
+        if axis.x < -450:
             driver.turn_to_heading(270)
             open_wings()
-            driver.set_drive_velocity(60,PERCENT)
+            driver.set_drive_velocity(80,PERCENT)
             driver.turn_to_heading(270)
-            driver.drive_for(FORWARD,1000,MM)
+            driver.drive_for(FORWARD,800,MM)
+            close_wings()
+            driver.set_drive_velocity(50, PERCENT)
             break
-            
-        
-        
+
 def timer():
     global timeout
     wait(30,SECONDS)
     timeout = True
+    driver.set_timeout(5, SECONDS)
 
-Thread(lambda:axis.info())
-# Thread(lambda: timer())
-# while True:
-    # axis.info()
-    # if timeout:
-cross_line()
-# driver.drive(FORWARD)
-    # else:
-    #     axis.info()
-    #     accepter_activated()
-    #     shooting()
+def execute_preload():
+    arm.set_stopping(COAST)
+    
+    driver.drive_for(FORWARD, 1800, MM)
+    driver.set_timeout(1.5, SECONDS)
+    arm.spin_for(FORWARD, 270, DEGREES)
+    driver.drive_for(REVERSE, 300, MM)
+    driver.turn_to_heading(245)
+    arm.stop()
+
+
+Thread(axis.info)
+Thread(timer)    
+execute_preload()
+while True:
+    if timeout:
+        cross_line()
+        driver.drive_for(REVERSE, 100, MM)
+        driver.turn_to_heading(190)
+        open_wings()
+        driver.drive_for(FORWARD, 1400, MM)
+        axis.set_target(-1500, -800)
+        close_wings()
+        axis.move_to_target(FORWARD)
+        right_wing.spin_for(FORWARD, 200, DEGREES)
+        driver.set_drive_velocity(70, PERCENT)
+        driver.drive_for(REVERSE,300,MM)
+        driver.drive_for(FORWARD,400,MM)
+        driver.drive_for(REVERSE,300,MM)
+        driver.drive_for(FORWARD,400,MM)
+        
+
+    else:
+        accepter_activated()
+        shooting()
