@@ -1,3 +1,33 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+# vex-vision-config:begin
+vision_20__SIG_1 = Signature(1, -6525, -6011, -6268,-5617, -5049, -5334,11, 0)
+vision_20 = Vision(Ports.PORT20, 50, vision_20__SIG_1)
+# vex-vision-config:end
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
 from vex import *
 
 brain=Brain()
@@ -121,7 +151,7 @@ class Axis:
             else:
                 self.theta = 270 + self.correct_angle_in_radian
     def check_location(self):
-        if (axis.x < axis.x0 + 100 and axis.x > axis.x0 - 100) and (axis.y > axis.y0 -100 and axis.y < axis.y0 +100):
+        if (axis.x < axis.x0 + 150 and axis.x > axis.x0 - 150) and (axis.y > axis.y0 -150 and axis.y < axis.y0 +150):
             return True
         else:
             return False
@@ -153,18 +183,20 @@ def close_wings():
 
 
 def closing_object(center_x):
-    if center_x < 110:
-        driver.turn(LEFT, 5, PERCENT)
-    elif center_x > 180:
-        driver.turn(RIGHT, 5, PERCENT)
+    if center_x < 100:
+        driver.turn(LEFT, 8, PERCENT)
+    elif center_x > 190:
+        driver.turn(RIGHT, 8, PERCENT)
     else : 
-        driver.drive(FORWARD)
+        driver.drive_for(FORWARD, 80, MM)
 
 
 
 def shooting():
     global status
+    global objects
     objects = vision.take_snapshot(vision_20__SIG_1)
+    
     if objects == None:
         finding_object()
     else:
@@ -175,7 +207,7 @@ def shooting():
         
         if w > 210 and h > 110:
             bouncing()
-        elif w > 30 and h > 30:
+        elif w > 20 and h > 20:
             grabbing(center_x)
         else :
             finding_object()
@@ -183,8 +215,8 @@ def shooting():
 def finding_object():
     global status
     status = 'forward'
-    driver.drive_for(FORWARD, 30, MM)
-    driver.turn(LEFT, 15, PERCENT)   
+    # driver.drive_for(FORWARD, 30, MM)
+    driver.turn_for(LEFT, 10, DEGREES)   
             
 def grabbing(center_x):
     global status
@@ -234,9 +266,11 @@ def cross_line():
 
         if axis.x < -450:
             driver.turn_to_heading(270)
+            driver.drive_for(REVERSE,300,MM)
             open_wings()
             driver.set_drive_velocity(80,PERCENT)
             driver.turn_to_heading(270)
+            driver.set_timeout(1.5,SECONDS)
             driver.drive_for(FORWARD,800,MM)
             close_wings()
             driver.set_drive_velocity(50, PERCENT)
@@ -250,36 +284,51 @@ def timer():
 
 def execute_preload():
     arm.set_stopping(COAST)
-    
-    driver.drive_for(FORWARD, 1800, MM)
-    driver.set_timeout(1.5, SECONDS)
+    driver.set_drive_velocity(80,PERCENT)
+    driver.drive_for(FORWARD, 1400, MM)
+    driver.set_timeout(0.8, SECONDS)
     arm.spin_for(FORWARD, 270, DEGREES)
     driver.drive_for(REVERSE, 300, MM)
     driver.turn_to_heading(245)
+    driver.set_drive_velocity(30,PERCENT)
+    driver.set_timeout(1.5, SECONDS)
     arm.stop()
 
-
+def snapshot():
+    global objects
+    while True:
+        objects = vision.take_snapshot(vision_20__SIG_1)
+driver.set_turn_velocity(10, PERCENT)
 Thread(axis.info)
 Thread(timer)    
+driver.turn_to_heading(270)
 execute_preload()
+Thread(snapshot)
 while True:
     if timeout:
         cross_line()
-        driver.drive_for(REVERSE, 100, MM)
+        driver.drive_for(REVERSE, 200, MM)
         driver.turn_to_heading(190)
         open_wings()
+        driver.set_timeout(3,SECONDS)
         driver.drive_for(FORWARD, 1400, MM)
-        axis.set_target(-1500, -800)
+        axis.set_target(-1500, -1200)
         close_wings()
         axis.move_to_target(FORWARD)
+        driver.drive_for(REVERSE,200)
         right_wing.spin_for(FORWARD, 200, DEGREES)
-        driver.set_drive_velocity(70, PERCENT)
-        driver.drive_for(REVERSE,300,MM)
-        driver.drive_for(FORWARD,400,MM)
-        driver.drive_for(REVERSE,300,MM)
-        driver.drive_for(FORWARD,400,MM)
+        driver.set_drive_velocity(80, PERCENT)
+        right_wing.spin_for(REVERSE, 200, DEGREES)
+        driver.drive_for(REVERSE,200,MM)
+        right_wing.spin_for(FORWARD, 200, DEGREES)
+        driver.drive_for(FORWARD,300,MM)
+        right_wing.spin_for(REVERSE, 200, DEGREES)
+        driver.drive_for(REVERSE,200,MM)
+        right_wing.spin_for(FORWARD, 200, DEGREES)
+        driver.drive_for(FORWARD,300,MM)
+        break
         
 
     else:
-        accepter_activated()
+        Thread(accepter_activated)
         shooting()
