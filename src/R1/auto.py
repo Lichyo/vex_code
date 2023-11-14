@@ -1,33 +1,3 @@
-#region VEXcode Generated Robot Configuration
-from vex import *
-import urandom
-
-# Brain should be defined by default
-brain=Brain()
-
-# Robot configuration code
-# vex-vision-config:begin
-vision_20__SIG_1 = Signature(1, -6525, -6011, -6268,-5617, -5049, -5334,11, 0)
-vision_20 = Vision(Ports.PORT20, 50, vision_20__SIG_1)
-# vex-vision-config:end
-
-
-# wait for rotation sensor to fully initialize
-wait(30, MSEC)
-
-
-def play_vexcode_sound(sound_name):
-    # Helper to make playing sounds from the V5 in VEXcode easier and
-    # keeps the code cleaner by making it clear what is happening.
-    print("VEXPlaySound:" + sound_name)
-    wait(5, MSEC)
-
-# add a small delay to make sure we don't print in the middle of the REPL header
-wait(200, MSEC)
-# clear the console to make sure we don't have the REPL in the console
-print("\033[2J")
-
-#endregion VEXcode Generated Robot Configuration
 from vex import *
 
 brain=Brain()
@@ -61,17 +31,18 @@ wings.set_velocity(40,PERCENT)
 wings.set_timeout(1,SECONDS)
 
 accepter.set_velocity(80, PERCENT)
-is_arrived = False 
 global is_wings_open
 is_wings_open = False
+
 global status
 status = 'stop'
 
 global timeout 
 timeout = False
+
 class Axis:
     def __init__(self):
-        self.x0 = -1100
+        self.x0 = 0
         self.y0 = 0
 
     def position(self): 
@@ -95,14 +66,27 @@ class Axis:
             else:
                 self.quadrant = 3
 
+    def set_quadrant_with_target(self):
+        self.position()
+        if self.x - self.x0 > 0:
+            if self.y - self.y0 > 0:
+                self.quadrant_with_target = 1
+            else:
+                self.quadrant_with_target = 4
+        else:
+            if self.y - self.y0 > 0:
+                self.quadrant_with_target = 2
+            else:
+                self.quadrant_with_target = 3
+
     def set_target(self, x, y):
         self.x0 = x
         self.y0 = y
         self.update()
 
     def update(self):
-        self.set_quadrant()
-        self.set_theta()
+        self.set_quadrant_with_target()
+        self.set_theta_with_target()
         self.position()
 
     def info(self):
@@ -110,6 +94,8 @@ class Axis:
             self.update()
             brain.screen.clear_screen()
             brain.screen.set_cursor(1, 1)
+            brain.screen.print('check locaion: ', self.check_location())
+            brain.screen.next_row()
             brain.screen.print('x0: ',self.x0, 'y0: ',self.y0)
             brain.screen.next_row()
             brain.screen.print('x: ',self.x)
@@ -118,53 +104,49 @@ class Axis:
             brain.screen.next_row()
             brain.screen.print('head: ',self.head)
             brain.screen.next_row()
-            brain.screen.print('quadrant: ',self.quadrant)
+            brain.screen.print('quadrant: ',self.quadrant_with_target)
             brain.screen.next_row()
             brain.screen.print('theta:' , self.theta)
             brain.screen.next_row()
-            brain.screen.print('correct: ' , self.correct_angle_in_radian)
+            brain.screen.print('correct: ' , self.correct_angle_in_radian_with_target)
+            brain.screen.next_row()
+            brain.screen.print('quadrant with target: ' , self.quadrant_with_target)
             brain.screen.next_row()
             wait(0.1,SECONDS)
 
-    def set_theta(self):
-        self.set_quadrant
+    def set_theta_with_target(self):
+        self.set_quadrant_with_target()
         self.position()
         cos = self.a/self.b
-        self.correct_angle_in_radian = math.acos(cos)
-        self.correct_angle_in_radian = math.degrees(self.correct_angle_in_radian)
-        if self.x < self.x0:
-            if self.quadrant == 1:
-                self.theta = 90 + self.correct_angle_in_radian
-            elif self.quadrant == 2:
-                self.theta = 90 + self.correct_angle_in_radian
-            elif self.quadrant == 3:
-                self.theta = 90 - self.correct_angle_in_radian
-            else:
-                self.theta = 90 - self.correct_angle_in_radian
+        self.correct_angle_in_radian_with_target = math.acos(cos)
+        self.correct_angle_in_radian_with_target = math.degrees(self.correct_angle_in_radian_with_target)
+        if self.quadrant_with_target == 1:
+            self.theta = 270 - self.correct_angle_in_radian_with_target
+        elif self.quadrant_with_target == 2:
+            self.theta = 90 + self.correct_angle_in_radian_with_target
+        elif self.quadrant_with_target == 3:
+            self.theta = 90 - self.correct_angle_in_radian_with_target
         else:
-            if self.quadrant == 1:
-                self.theta = 270 - self.correct_angle_in_radian
-            elif self.quadrant == 2:
-                self.theta = 270 - self.correct_angle_in_radian
-            elif self.quadrant == 3:
-                self.theta = 270 + self.correct_angle_in_radian
-            else:
-                self.theta = 270 + self.correct_angle_in_radian
+            self.theta = 270 + self.correct_angle_in_radian_with_target
+
     def check_location(self):
-        if (axis.x < axis.x0 + 150 and axis.x > axis.x0 - 150) and (axis.y > axis.y0 -150 and axis.y < axis.y0 +150):
+        if (axis.x < axis.x0 + 100 and axis.x > axis.x0 - 100) and (axis.y > axis.y0 -100 and axis.y < axis.y0 + 100):
             return True
         else:
             return False
     def move_to_target(self, direction):
-        while not axis.check_location():
-            self.set_theta()
+        current_velocity = driver.velocity(PERCENT)
+        while not self.check_location():
             adjust_direction(self.theta)
-            driver.drive(direction)
+            driver.drive(direction, 30, PERCENT)
+        driver.stop()
+        driver.set_drive_velocity(current_velocity, PERCENT)
+        return
 
 ####################################################################################
 
 def adjust_direction(angles):
-    if not(axis.head < angles + 10 and axis.head > angles -10):
+    if not(axis.head < angles + 5 and axis.head > angles -5):
         driver.turn_to_heading(angles,DEGREES)
 
 def open_wings():
@@ -184,17 +166,13 @@ def close_wings():
 
 def closing_object(center_x):
     if center_x < 100:
-        driver.turn(LEFT, 8, PERCENT)
+        driver.turn(LEFT, 5, PERCENT)
     elif center_x > 190:
-        driver.turn(RIGHT, 8, PERCENT)
+        driver.turn(RIGHT, 5, PERCENT)
     else : 
         driver.drive_for(FORWARD, 80, MM)
 
-
-
 def shooting():
-    global status
-    global objects
     objects = vision.take_snapshot(vision_20__SIG_1)
     
     if objects == None:
@@ -213,37 +191,20 @@ def shooting():
             finding_object()
             
 def finding_object():
-    global status
-    status = 'forward'
-    # driver.drive_for(FORWARD, 30, MM)
+    Thread(lambda: accepter.stop())
     driver.turn_for(LEFT, 10, DEGREES)   
             
 def grabbing(center_x):
-    global status
-    status = 'forward'
+    Thread(lambda: accepter.spin(FORWARD))
     closing_object(center_x)        
             
 def bouncing():
-    global status
-    driver.turn_to_heading(270)
+    adjust_direction(270)
     driver.drive_for(FORWARD, 200, MM)
     accepter.spin_for(REVERSE,2,TURNS)
     driver.drive_for(REVERSE, 500, MM)
     driver.turn_to_heading(245)
-    status = 'release'
-            
-def accepter_activated():
-    global status
-    if status == 'forward':
-        Thread(lambda: accepter.spin(FORWARD))
-    elif status == 'release':
-        Thread(lambda:accepter.spin_for(REVERSE, 5, TURNS))
-    else:
-        accepter.stop() 
-
-axis = Axis()
-drivetrain_gps.calibrate()
-wait(0.3,SECONDS)
+    Thread(lambda: accepter.spin(REVERSE))
 
 def cross_line():
     accepter.stop()
@@ -251,7 +212,7 @@ def cross_line():
     arm.stop()
     driver.set_timeout(5,SECONDS)
     axis.set_target(500, 0)
-    axis.set_theta()
+    axis.set_theta_with_target()
     driver.set_drive_velocity(60, PERCENT)
     axis.move_to_target(FORWARD)
     driver.stop()
@@ -260,21 +221,23 @@ def cross_line():
     wait(0.1, SECONDS)
     driver.turn_to_heading(90)
     axis.set_target(-800,0)
-    driver.turn_to_heading(90)
+    # driver.turn_to_heading(90)
     while not(axis.check_location()):
-        driver.drive_for(REVERSE,500,MM)
-
-        if axis.x < -450:
-            driver.turn_to_heading(270)
-            driver.drive_for(REVERSE,300,MM)
-            open_wings()
-            driver.set_drive_velocity(80,PERCENT)
-            driver.turn_to_heading(270)
-            driver.set_timeout(1.5,SECONDS)
-            driver.drive_for(FORWARD,800,MM)
-            close_wings()
-            driver.set_drive_velocity(50, PERCENT)
+        driver.drive(REVERSE)
+        if axis.x < -550:
             break
+
+def rush_in_front_of_goal():
+    adjust_direction(270)
+    driver.drive_for(REVERSE,400,MM)
+    open_wings()
+    driver.set_drive_velocity(90,PERCENT)
+    adjust_direction(270)
+    driver.set_timeout(1.5,SECONDS)
+    driver.drive_for(FORWARD,800,MM)
+    close_wings()
+    driver.set_drive_velocity(50, PERCENT)
+    driver.set_timeout(3,SECONDS)
 
 def timer():
     global timeout
@@ -294,41 +257,81 @@ def execute_preload():
     driver.set_timeout(1.5, SECONDS)
     arm.stop()
 
-def snapshot():
-    global objects
-    while True:
-        objects = vision.take_snapshot(vision_20__SIG_1)
-driver.set_turn_velocity(10, PERCENT)
+# driver.set_turn_velocity(5, PERCENT)
+axis = Axis()
+drivetrain_gps.calibrate()
+wait(0.3,SECONDS)
 Thread(axis.info)
-Thread(timer)    
-driver.turn_to_heading(270)
-execute_preload()
-Thread(snapshot)
-while True:
-    if timeout:
-        cross_line()
-        driver.drive_for(REVERSE, 200, MM)
-        driver.turn_to_heading(190)
-        open_wings()
-        driver.set_timeout(3,SECONDS)
-        driver.drive_for(FORWARD, 1400, MM)
-        axis.set_target(-1500, -1200)
-        close_wings()
-        axis.move_to_target(FORWARD)
-        driver.drive_for(REVERSE,200)
-        right_wing.spin_for(FORWARD, 200, DEGREES)
-        driver.set_drive_velocity(80, PERCENT)
-        right_wing.spin_for(REVERSE, 200, DEGREES)
-        driver.drive_for(REVERSE,200,MM)
-        right_wing.spin_for(FORWARD, 200, DEGREES)
-        driver.drive_for(FORWARD,300,MM)
-        right_wing.spin_for(REVERSE, 200, DEGREES)
-        driver.drive_for(REVERSE,200,MM)
-        right_wing.spin_for(FORWARD, 200, DEGREES)
-        driver.drive_for(FORWARD,300,MM)
-        break
+axis.set_target(-950, -1600)
+axis.update()
+axis.move_to_target(FORWARD)
+driver.drive_for(FORWARD, 300, MM)
+# current_velocity = driver.velocity(PERCENT)
+# brain.screen.print(current_velocity)
+
+# Thread(timer)    
+# driver.turn_to_heading(270)
+# execute_preload()
+
+def push_side_ball_into_goal():
+    # axis.set_target(-900, -1600)
+    driver.turn_to_heading(195)
+    axis.update()
+    driver.drive_for(FORWARD,1750)
+    driver.turn_to_heading(270)
+    driver.drive_for(FORWARD,500,MM)
+    driver.turn_for(RIGHT,5,DEGREES)
+
+
+    # axis.move_to_target(FORWARD)
+    # adjust_direction(180)
+    # left_wing.spin_for(FORWARD, 200, DEGREES)
+    # axis.set_target(-900, -1700)
+    # axis.update()
+    # axis.move_to_target(FORWARD)
+    # driver.turn_for(30, DEGREES)
+    # left_wing.spin_for(REVERSE, 200, DEGREES)
+    # driver.drive_for(FORWARD, 300, MM)
+    # right_wing.spin_for(FORWARD, 200, DEGREES)
+    # driver.drive_for(FORWARD, 500, MM)
+    # right_wing.spin_for(REVERSE, 200, DEGREES)
+    # driver.drive_for(REVERSE, 500, MM)
+    # right_wing.spin_for(FORWARD, 200, DEGREES)
+    # driver.drive_for(FORWARD, 500, MM)
+    # right_wing.spin_for(REVERSE, 200, DEGREES)
+    # driver.drive_for(REVERSE, 500, MM)
+    # right_wing.spin_for(FORWARD, 200, DEGREES)
+    return
+    
+# push_side_ball_into_goal()
+    
+    
+# while True:
+#     if timeout:
+#         cross_line()
+#         rush_in_front_of_goal()
+#         rush_in_front_of_goal()
+#         driver.drive_for(REVERSE, 200, MM)
+#         adjust_direction(190)
+#         open_wings()
+#         driver.drive_for(FORWARD, 1500, MM)
+#         axis.set_target(-1600, -1200)
+#         close_wings()
+#         axis.move_to_target(FORWARD)
+#         driver.drive_for(REVERSE,200)
+#         right_wing.spin_for(FORWARD, 200, DEGREES)
+#         driver.set_drive_velocity(80, PERCENT)
+#         right_wing.spin_for(REVERSE, 200, DEGREES)
+#         driver.drive_for(REVERSE,200,MM)
+#         right_wing.spin_for(FORWARD, 200, DEGREES)
+#         driver.drive_for(FORWARD,300,MM)
+#         right_wing.spin_for(REVERSE, 200, DEGREES)
+#         driver.drive_for(REVERSE,200,MM)
+#         right_wing.spin_for(FORWARD, 200, DEGREES)
+#         driver.drive_for(FORWARD,300,MM)
+#         break
         
 
-    else:
-        Thread(accepter_activated)
-        shooting()
+#     else:
+#         shooting()
+
