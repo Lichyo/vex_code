@@ -1,5 +1,5 @@
 from vex import *
-
+arm = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
 left_motor_a = Motor(Ports.PORT5, GearSetting.RATIO_18_1, False)
 left_motor_b = Motor(Ports.PORT6, GearSetting.RATIO_18_1, False)
 left_wheels = MotorGroup(left_motor_a, left_motor_b)
@@ -19,21 +19,24 @@ throw_1 = Motor(Ports.PORT4, GearSetting.RATIO_36_1, False)
 throw_2 = Motor(Ports.PORT3, GearSetting.RATIO_36_1, True)
 throw= MotorGroup(throw_1, throw_2)
 throw.set_stopping(HOLD)
-throw.set_velocity(35, PERCENT)
+throw.set_velocity(25, PERCENT)
 throw.set_max_torque(100, PERCENT)
 stretch.set_velocity(90, PERCENT)
 stretch.set_stopping(COAST)
 stretch.set_timeout(1, SECONDS)
-throw.set_timeout(1, SECONDS)
+throw.set_timeout(5, SECONDS)
 
 
 class Accepter:
     def __init__(self):
         self.prepared = False
         self.is_stretching = False
+        self.totalStretchDegree:int = 730
+        self.backOffDegree:int = 100
+        self.stretchDegree:int = self.totalStretchDegree - self.backOffDegree #650
     
     def throw_prepare(self):
-        throw.spin_for(FORWARD, 165, DEGREES)
+        throw.spin_for(FORWARD, 160, DEGREES)
 
     def stretch_prepare(self):
         if self.is_stretching:
@@ -46,7 +49,7 @@ class Accepter:
         if self.is_stretching:
            self.set_stop()
         else:
-            Thread(lambda: driver.drive_for(REVERSE, 30, MM))
+            Thread(lambda: driver.drive_for(REVERSE, 10, MM))
             Thread(self.throw_prepare)
             self.stretch_prepare()
             self.prepared = True
@@ -59,13 +62,24 @@ class Accepter:
     def shoot(self):
         if self.prepared:
             stretch.spin_for(REVERSE, 900, DEGREES)
-            throw.spin_for(FORWARD, 195, DEGREES)
+            throw.spin_for(FORWARD, 200, DEGREES)
+            throw.stop()
             self.prepared = False
             self.is_stretching = False
         else:
             self.set_stop()
             
+    def execute_preload(self): 
+        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        self.throw_prepare()
+        stretch.spin_for(FORWARD, 730, DEGREES)
+        arm.spin_for(REVERSE,180,DEGREES)
+        self.prepared = True
+        self.is_stretching = True
+        self.shoot()
+            
 accepter = Accepter()
+accepter.execute_preload()    
 while True:
     if not accepter.prepared:
         accepter.prepare()

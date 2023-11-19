@@ -23,6 +23,8 @@ wings = MotorGroup(wing1,wing2)
 # setup
 driver_speed_up = False
 driver.set_stopping(COAST)
+right_wheels.set_max_torque(100, PERCENT)
+left_wheels.set_max_torque(100, PERCENT)
 driver.set_drive_velocity(60, PERCENT)
 driver.set_turn_velocity(30, PERCENT)
 
@@ -62,7 +64,10 @@ while True:
         left_wheels.spin(FORWARD)
         right_wheels.spin(FORWARD)
     elif v < -10:
-        driver.drive(REVERSE, 120, RPM)
+        left_wheels.set_velocity(100, RPM)
+        right_wheels.set_velocity(100, RPM)
+        left_wheels.spin(REVERSE)
+        right_wheels.spin(REVERSE)
     else:
         if h > 10:
             driver.turn(RIGHT)
