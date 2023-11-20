@@ -146,8 +146,8 @@ class Axis:
 
 def adjust_direction(angles):
     driver.set_turn_velocity(10, PERCENT)
-    if angles > 355 or angles < 5:
-        driver.turn_to_heading(0)
+    if angles > 354 or angles < 6:
+        driver.turn_to_heading(0, DEGREES)
     elif not(axis.head < angles + 5 and axis.head > angles -5):
         driver.turn_to_heading(angles,DEGREES)
 
@@ -208,27 +208,6 @@ def bouncing():
     driver.turn_to_heading(295)
     Thread(lambda: accepter.spin(REVERSE))
 
-def cross_line():
-    accepter.stop()
-    arm.spin_for(REVERSE, 270, DEGREES)
-    arm.stop()
-    driver.set_timeout(5,SECONDS)
-    axis.set_target(500, 0)
-    axis.set_theta_with_target()
-    driver.set_drive_velocity(60, PERCENT)
-    axis.move_to_target()
-    driver.stop()
-    axis.update()
-    driver.turn_to_heading(90)
-    wait(0.1, SECONDS)
-    driver.turn_to_heading(90)
-    axis.set_target(-800,0)
-    # driver.turn_to_heading(90)
-    while not(axis.check_location()):
-        driver.drive(REVERSE)
-        if axis.x < -550:
-            break
-
 def rush_in_front_of_goal():
     driver.set_drive_velocity(90,PERCENT)
     Thread(close_wings)
@@ -269,43 +248,43 @@ wait(0.5, SECONDS)
 Thread(axis.info)
 Thread(timer)
 
-# execute_preload()
+execute_preload()
 driver.set_drive_velocity(40, PERCENT)
 driver.set_turn_velocity(30, PERCENT)
 while True:
-    # if timeout:
-    # accepter.stop()
-    # arm.spin_for(REVERSE, 270, DEGREES)
-    # arm.stop()
-    driver.turn_to_heading(0)
-    # adjust_direction(350)
-    driver.set_drive_velocity(50, PERCENT)
-    while not(axis.check_location()):
-        driver.drive(REVERSE)
-        if axis.y < -1450:
-            break
-    driver.set_turn_velocity(30, PERCENT)
-    driver.set_timeout(2,SECONDS)
-    adjust_direction(270)
-    axis.set_target(-1100, -1500)
-    driver.set_drive_velocity(70, PERCENT)
-    while not(axis.check_location()):
-        driver.drive(FORWARD)
-        if axis.x < -300:
-            right_wing.spin_for(FORWARD, 200, DEGREES)
-        if axis.x < -800:
-            break
-    axis.set_target(-1000, -1300)
-    axis.move_to_target()
-    left_wing.spin_for(FORWARD, 200, DEGREES)
-    is_wings_open = True
-    axis.set_target(-400,-100)
-    axis.move_to_target()
-    axis.set_target(-900,100)
-    axis.move_to_target()
-    close_wings()
-    rush_in_front_of_goal()
-    wait(0.1,SECONDS)
-    rush_in_front_of_goal()
-    # else:
-    #     shooting()
+    if timeout:
+        accepter.stop()
+        arm.spin_for(REVERSE, 270, DEGREES)
+        arm.stop()
+        # driver.turn_to_heading(0)
+        adjust_direction(0)
+        driver.set_drive_velocity(50, PERCENT)
+        while not(axis.check_location()):
+            driver.drive(REVERSE)
+            if axis.y < -1450:
+                break
+        driver.set_turn_velocity(30, PERCENT)
+        driver.set_timeout(2,SECONDS)
+        adjust_direction(270)
+        axis.set_target(-1100, -1500)
+        driver.set_drive_velocity(70, PERCENT)
+        while not(axis.check_location()):
+            driver.drive(FORWARD)
+            if axis.x < -300:
+                right_wing.spin_for(FORWARD, 200, DEGREES)
+            if axis.x < -800:
+                break
+        axis.set_target(-1000, -1300)
+        axis.move_to_target()
+        left_wing.spin_for(FORWARD, 200, DEGREES)
+        is_wings_open = True
+        axis.set_target(-400,-100)
+        axis.move_to_target()
+        axis.set_target(-900,100)
+        axis.move_to_target()
+        close_wings()
+        rush_in_front_of_goal()
+        wait(0.1,SECONDS)
+        rush_in_front_of_goal()
+    else:
+        shooting()

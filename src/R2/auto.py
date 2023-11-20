@@ -24,16 +24,13 @@ throw.set_max_torque(100, PERCENT)
 stretch.set_velocity(90, PERCENT)
 stretch.set_stopping(COAST)
 stretch.set_timeout(1, SECONDS)
-throw.set_timeout(5, SECONDS)
+throw.set_timeout(2, SECONDS)
 
 
 class Accepter:
     def __init__(self):
         self.prepared = False
         self.is_stretching = False
-        self.totalStretchDegree:int = 730
-        self.backOffDegree:int = 100
-        self.stretchDegree:int = self.totalStretchDegree - self.backOffDegree #650
     
     def throw_prepare(self):
         throw.spin_for(FORWARD, 160, DEGREES)
@@ -43,7 +40,7 @@ class Accepter:
             pass
         else:
             self.is_stretching = True
-            stretch.spin_for(FORWARD, 900, DEGREES)
+            stretch.spin_for(FORWARD, 800, DEGREES)
     
     def prepare(self):
         if self.is_stretching:
@@ -61,7 +58,7 @@ class Accepter:
 
     def shoot(self):
         if self.prepared:
-            stretch.spin_for(REVERSE, 900, DEGREES)
+            stretch.spin_for(REVERSE, 800, DEGREES)
             throw.spin_for(FORWARD, 200, DEGREES)
             throw.stop()
             self.prepared = False
@@ -89,5 +86,5 @@ while True:
             pass
         else:
             objects = vision.largest_object()
-            if objects.height > 30 and objects.width > 50:
+            if objects.height > 10 and objects.width > 20:
                 accepter.shoot()
