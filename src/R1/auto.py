@@ -134,6 +134,7 @@ class Axis:
             return True
         else:
             return False
+        
     def move_to_target(self,):
         driver.set_drive_velocity(40, PERCENT)
         while not self.check_location():
@@ -288,3 +289,5 @@ while True:
         rush_in_front_of_goal()
     else:
         shooting()
+        
+        
