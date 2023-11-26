@@ -17,6 +17,7 @@ arm = Motor(Ports.PORT8, GearSetting.RATIO_18_1, False)
 drivetrain_gps = Gps(Ports.PORT11, 0.00, -40.00, MM, 0)
 driver = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_gps, 319.19, 320, 40, MM, 1)
 arm.set_stopping(COAST)
+arm.set_timeout(2, SECONDS)
 
 driver.set_drive_velocity(50, PERCENT)
 driver.set_turn_velocity(15, PERCENT)
@@ -30,12 +31,9 @@ wings.set_velocity(20,PERCENT)
 wings.set_timeout(1,SECONDS)
 wings.set_max_torque(100, PERCENT)
 accepter.set_velocity(80, PERCENT)
-arm.set_stopping(COAST)
 global is_wings_open
 is_wings_open = False
 
-global status
-status = 'stop'
 
 global timeout 
 timeout = False
@@ -130,15 +128,15 @@ class Axis:
             self.theta = 270 + self.correct_angle_in_radian_with_target
 
     def check_location(self):
-        if (axis.x < axis.x0 + 100 and axis.x > axis.x0 - 100) and (axis.y > axis.y0 -100 and axis.y < axis.y0 + 100):
+        if (axis.x < axis.x0 + 150 and axis.x > axis.x0 - 150) and (axis.y > axis.y0 -150 and axis.y < axis.y0 + 150):
             return True
         else:
             return False
     def move_to_target(self,):
-        driver.set_drive_velocity(40, PERCENT)
+        driver.set_drive_velocity(35, PERCENT)
         while not self.check_location():
             adjust_direction(self.theta)
-            driver.drive_for(FORWARD, 100, MM)
+            driver.drive_for(FORWARD, 150, MM)
         driver.stop()
         return
 
@@ -156,20 +154,20 @@ def open_wings():
     if is_wings_open:
         pass
     else:
-        wings.spin_for(FORWARD, 200, DEGREES)
+        wings.spin_for(FORWARD, 230, DEGREES)
         is_wings_open = not is_wings_open    
 
 def close_wings():
     global is_wings_open
     if is_wings_open:
-        wings.spin_for(REVERSE, 200, DEGREES)
+        wings.spin_for(REVERSE, 230, DEGREES)
         is_wings_open = not is_wings_open    
 
 
 def closing_object(center_x):
-    if center_x < 100:
+    if center_x < 110:
         driver.turn(LEFT, 5, PERCENT)
-    elif center_x > 190:
+    elif center_x > 180:
         driver.turn(RIGHT, 5, PERCENT)
     else : 
         driver.drive_for(FORWARD, 80, MM)
@@ -193,30 +191,32 @@ def shooting():
             finding_object()
             
 def finding_object():
-    Thread(lambda: accepter.stop())
-    driver.turn_for(RIGHT, 10, DEGREES)   
+    accepter.stop()
+    driver.turn_for(RIGHT, 5, DEGREES)   
             
 def grabbing(center_x):
     Thread(lambda: accepter.spin(FORWARD))
     closing_object(center_x)        
             
 def bouncing():
-    adjust_direction(270)
+    adjust_direction(90)
     driver.drive_for(FORWARD, 200, MM)
     accepter.spin_for(REVERSE,2,TURNS)
     driver.drive_for(REVERSE, 300, MM)
-    driver.turn_to_heading(295)
+    driver.turn_to_heading(115)
     Thread(lambda: accepter.spin(REVERSE))
 
 def rush_in_front_of_goal():
+    axis.set_target(1000, 0)
+    axis.update()
     driver.set_drive_velocity(90,PERCENT)
     Thread(close_wings)
-    adjust_direction(270)
-    driver.drive_for(REVERSE,500,MM)
+    adjust_direction(90)
+    driver.drive_for(REVERSE,600,MM)
     Thread(open_wings)
-    # adjust_direction(270)
+    adjust_direction(axis.theta)
     driver.set_timeout(1.2,SECONDS)
-    driver.drive_for(FORWARD,1000,MM)
+    driver.drive_for(FORWARD,1200,MM)
 
 
 def timer():
@@ -234,10 +234,9 @@ def execute_preload():
     driver.drive_for(FORWARD, 1200, MM)
     driver.set_timeout(1, SECONDS)
     arm.spin_for(FORWARD, 270, DEGREES)
-    arm.set_stopping(COAST)
     arm.stop()
-    driver.drive_for(REVERSE, 300, MM)
-    driver.turn_to_heading(245)
+    driver.drive_for(REVERSE, 350, MM)
+    driver.turn_to_heading(60)
 
 ########################################################################################################################################################################
     
@@ -251,40 +250,44 @@ Thread(timer)
 execute_preload()
 driver.set_drive_velocity(40, PERCENT)
 driver.set_turn_velocity(30, PERCENT)
+
 while True:
     if timeout:
+        driver.set_timeout(3, SECONDS)
         accepter.stop()
         arm.spin_for(REVERSE, 270, DEGREES)
+        accepter.stop()
         arm.stop()
-        # driver.turn_to_heading(0)
-        adjust_direction(0)
-        driver.set_drive_velocity(50, PERCENT)
+        adjust_direction(180)
+        driver.set_turn_velocity(30, PERCENT)
+        driver.turn_to_heading(180)
         while not(axis.check_location()):
             driver.drive(REVERSE)
-            if axis.y < -1450:
+            if axis.y > 1500:
                 break
-        driver.set_turn_velocity(30, PERCENT)
         driver.set_timeout(2,SECONDS)
-        adjust_direction(270)
-        axis.set_target(-1100, -1500)
-        driver.set_drive_velocity(70, PERCENT)
+        adjust_direction(100)
+        axis.set_target(1100, 1500)
+        driver.set_drive_velocity(50, PERCENT)
         while not(axis.check_location()):
             driver.drive(FORWARD)
-            if axis.x < -300:
-                right_wing.spin_for(FORWARD, 200, DEGREES)
-            if axis.x < -800:
+            if axis.head < 20 or axis.head > 330:
                 break
-        axis.set_target(-1000, -1300)
+            if axis.x > 700:
+                break
+        axis.set_target(1200, 1300)
         axis.move_to_target()
-        left_wing.spin_for(FORWARD, 200, DEGREES)
+        left_wing.spin_for(FORWARD, 230, DEGREES)
+        driver.turn_to_heading(200, DEGREES)
+        right_wing.spin_for(FORWARD, 230, DEGREES)
         is_wings_open = True
-        axis.set_target(-400,-100)
+        axis.set_target(400,100)
         axis.move_to_target()
-        axis.set_target(-900,100)
+        axis.set_target(900,-100)
         axis.move_to_target()
         close_wings()
         rush_in_front_of_goal()
-        wait(0.1,SECONDS)
+        wait(0.2,SECONDS)
         rush_in_front_of_goal()
     else:
         shooting()
