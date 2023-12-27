@@ -1,48 +1,69 @@
 from vex import *
-# from enum import Enum, auto
+
 brain=Brain()
+
+vision_20__SIG_1 = Signature(1, -6525, -6011, -6268,-5617, -5049, -5334,11, 0)
+vision = Vision(Ports.PORT14, 50, vision_20__SIG_1)
 controller = Controller()
 
-# driving declaration
-left_motor_a = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
-left_motor_b = Motor(Ports.PORT2, GearSetting.RATIO_18_1, False)
+left_motor_a = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+left_motor_b = Motor(Ports.PORT12, GearSetting.RATIO_18_1, False)
 left_wheels = MotorGroup(left_motor_a, left_motor_b)
-right_motor_a = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
-right_motor_b = Motor(Ports.PORT4, GearSetting.RATIO_18_1, True)
+right_motor_a = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
+right_motor_b = Motor(Ports.PORT2, GearSetting.RATIO_18_1, True)
 right_wheels = MotorGroup(right_motor_a, right_motor_b)
-driver = DriveTrain(left_wheels, right_wheels, 319.19, 295, 40, MM, 1)
-
-# fixing objects devices
-accepter = Motor(Ports.PORT7, GearSetting.RATIO_18_1, True)
-arm = Motor(Ports.PORT8, GearSetting.RATIO_18_1, False)
-
-wing1 = Motor(Ports.PORT13, GearSetting.RATIO_18_1, True)
-wing2 = Motor(Ports.PORT14, GearSetting.RATIO_18_1, False)
-wings = MotorGroup(wing1,wing2)
-
-# setup
-driver_speed_up = False
-driver.set_stopping(COAST)
-driver.set_drive_velocity(60, PERCENT)
-driver.set_turn_velocity(30, PERCENT)
-
-is_wings_open = False
-wings.set_max_torque(90, PERCENT)
-wings.set_velocity(30,PERCENT)
-wings.set_timeout(1,SECONDS)
-
-accepter.set_velocity(80, PERCENT)
+roller = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
+arm = Motor(Ports.PORT6, GearSetting.RATIO_18_1, True)
+arm.set_max_torque(90,PERCENT)
+arm.set_velocity(20,PERCENT)
 arm.set_stopping(HOLD)
+hammer = Motor(Ports.PORT4, GearSetting.RATIO_18_1, False)
+drivetrain_gps = Gps(Ports.PORT13, 0.00, -40.00, MM, 0)
+driver = SmartDrive(left_wheels, right_wheels, drivetrain_gps, 319.19, 320, 40, MM, 1)
+driver.set_drive_velocity(65, PERCENT)
+driver.set_turn_velocity(15, PERCENT)
+driver.set_stopping(COAST)
+left_wing = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
+right_wing = Motor(Ports.PORT5, GearSetting.RATIO_18_1, True)
+wings = MotorGroup(left_wing, right_wing)
+wings.set_max_torque(100,PERCENT)
+wings.set_velocity(40,PERCENT)
+wings.set_timeout(1,SECONDS)
+is_arrived = False 
+global is_wings_open
+is_wings_open = False
 
+#1500o
 while True:
+    if controller.buttonUp.pressing():
+        arm.spin(FORWARD)
+    elif controller.buttonDown.pressing():
+        arm.spin(REVERSE)
+    else:
+        arm.stop()
 
-    if controller.buttonB.pressing():
-        if driver_speed_up:
-            driver.set_drive_velocity(50,PERCENT)
-            driver_speed_up = False
-        else:
-            driver.set_drive_velocity(80, PERCENT)
-            driver_speed_up = True
+    if controller.buttonX.pressing()and not is_wings_open:
+        wings.spin_for(REVERSE, 200, DEGREES)
+        is_wings_open = not is_wings_open
+    elif controller.buttonY.pressing() and is_wings_open:
+        wings.spin_for(FORWARD, 200, DEGREES)
+        is_wings_open = not is_wings_open            
+    else:
+        wings.stop()
+
+    if controller.buttonA.pressing():
+        hammer.spin_for(FORWARD,1470,DEGREES)
+    elif controller.buttonB.pressing():
+        hammer.spin_for(FORWARD,330,DEGREES)
+    else:
+        hammer.stop()
+
+    if controller.buttonR1.pressing():
+        roller.spin(FORWARD)
+    elif controller.buttonR2.pressing():
+        roller.spin(REVERSE)
+    else:
+        roller.stop()
 
     left_velocity = 0
     right_velocity = 0
@@ -70,32 +91,6 @@ while True:
             driver.turn(LEFT)
         else:
             driver.stop()
-
-    if controller.buttonA.pressing():
-        if is_wings_open:
-            wings.spin_for(REVERSE, 200, DEGREES)
-            driver.set_turn_velocity(35, PERCENT)
-        else:
-            wings.spin_for(FORWARD, 200, DEGREES)
-            driver.set_turn_velocity(70, PERCENT)
-        is_wings_open = not is_wings_open            
-    else:
-        wings.stop()
-    
-    if controller.buttonR1.pressing():
-        accepter.spin(FORWARD)
-    elif controller.buttonR2.pressing():
-        accepter.spin(REVERSE)
-    else:
-        accepter.stop()
         
-    if controller.buttonL1.pressing():
-        arm.spin(FORWARD)
-    elif controller.buttonL2.pressing():
-        arm.spin(REVERSE)
-    else:
-        arm.stop()
 
-    
-    
-        
+
