@@ -13,22 +13,26 @@ right_motor_a = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
 right_motor_b = Motor(Ports.PORT2, GearSetting.RATIO_18_1, True)
 right_wheels = MotorGroup(right_motor_a, right_motor_b)
 roller = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
-arm = Motor(Ports.PORT6, GearSetting.RATIO_18_1, True)
-arm.set_max_torque(90,PERCENT)
-arm.set_velocity(20,PERCENT)
+arm_left = Motor(Ports.PORT6, GearSetting.RATIO_18_1, True)
+arm_right = Motor(Ports.PORT13, GearSetting.RATIO_18_1, True)
+arm = MotorGroup(arm_left, arm_right)
+arm.set_max_torque(100, PERCENT)
+arm.set_velocity(5, PERCENT)
 arm.set_stopping(HOLD)
 hammer = Motor(Ports.PORT4, GearSetting.RATIO_18_1, False)
-drivetrain_gps = Gps(Ports.PORT13, 0.00, -40.00, MM, 0)
-driver = SmartDrive(left_wheels, right_wheels, drivetrain_gps, 319.19, 320, 40, MM, 1)
+hammer.set_max_torque(100, PERCENT)
+hammer.set_velocity(30, PERCENT)
+# drivetrain_gps = Gps(Ports.PORT11, 75.00, 150.00, MM, 180)
+driver = DriveTrain(left_wheels, right_wheels, 319.19, 320, 40, MM, 1)
 driver.set_drive_velocity(65, PERCENT)
 driver.set_turn_velocity(15, PERCENT)
 driver.set_stopping(COAST)
 left_wing = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
 right_wing = Motor(Ports.PORT5, GearSetting.RATIO_18_1, True)
 wings = MotorGroup(left_wing, right_wing)
-wings.set_max_torque(100,PERCENT)
-wings.set_velocity(40,PERCENT)
-wings.set_timeout(1,SECONDS)
+wings.set_max_torque(100, PERCENT)
+wings.set_velocity(40, PERCENT)
+wings.set_timeout(1, SECONDS)
 is_arrived = False 
 global is_wings_open
 is_wings_open = False
@@ -52,9 +56,9 @@ while True:
         wings.stop()
 
     if controller.buttonA.pressing():
-        hammer.spin_for(FORWARD,1470,DEGREES)
+        hammer.spin_for(FORWARD, 1500, DEGREES)
     elif controller.buttonB.pressing():
-        hammer.spin_for(FORWARD,330,DEGREES)
+        hammer.spin_for(FORWARD, 300, DEGREES)
     else:
         hammer.stop()
 

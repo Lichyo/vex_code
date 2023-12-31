@@ -1,5 +1,4 @@
 from vex import *
-
 left_motor_a = Motor(Ports.PORT5, GearSetting.RATIO_18_1, False)
 left_motor_b = Motor(Ports.PORT6, GearSetting.RATIO_18_1, False)
 left_wheels = MotorGroup(left_motor_a, left_motor_b)
@@ -9,6 +8,9 @@ right_wheels = MotorGroup(right_motor_a, right_motor_b)
 drivetrain_gps = Gps(Ports.PORT9, 160.00, 20.00, MM, 180)
 driver = SmartDrive(left_wheels, right_wheels, drivetrain_gps, 319.19, 320, 40, MM, 1)
 brain = Brain()
+limit = DigitalIn(brain.three_wire_port.d)
+ir = DigitalIn(brain.three_wire_port.a)
+
 controller = Controller()
 driver.set_drive_velocity(10, PERCENT)
 
@@ -19,12 +21,13 @@ throw_1 = Motor(Ports.PORT4, GearSetting.RATIO_36_1, False)
 throw_2 = Motor(Ports.PORT3, GearSetting.RATIO_36_1, True)
 throw= MotorGroup(throw_1, throw_2)
 throw.set_stopping(HOLD)
-throw.set_velocity(35, PERCENT)
+throw.set_velocity(40, PERCENT)
 throw.set_max_torque(100, PERCENT)
-stretch.set_velocity(90, PERCENT)
+stretch.set_velocity(80, PERCENT)
 stretch.set_stopping(COAST)
 stretch.set_timeout(1, SECONDS)
 throw.set_timeout(1, SECONDS)
+is_strethced = False
 
 
 class Accepter:
@@ -32,23 +35,25 @@ class Accepter:
         self.prepared = False
         self.is_stretching = False
     
-    def throw_prepare(self):
-        throw.spin_for(FORWARD, 165, DEGREES)
-
+    def throw_prepare(self,ir):
+        while ir.value() == 1: 
+            throw.spin(FORWARD)
+        throw.stop()
     def stretch_prepare(self):
         if self.is_stretching:
             pass
         else:
             self.is_stretching = True
-            stretch.spin_for(FORWARD, 900, DEGREES)
+            stretch.spin_for(FORWARD, 540, DEGREES)
     
-    def prepare(self):
+    def prepare(self,ir):
         if self.is_stretching:
            self.set_stop()
         else:
-            Thread(lambda: driver.drive_for(REVERSE, 30, MM))
-            Thread(self.throw_prepare)
-            self.stretch_prepare()
+            # Thread(lambda: driver.drive_for(REVERSE, 30, MM))
+            # Thread(self.throw_prepare(ir))
+            Thread(self.stretch_prepare)
+            self.throw_prepare(ir)
             self.prepared = True
         
 
@@ -56,19 +61,23 @@ class Accepter:
         throw.stop()
         stretch.stop()
 
-    def shoot(self):
+    def shoot(self, limit):
+        
         if self.prepared:
-            stretch.spin_for(REVERSE, 900, DEGREES)
-            throw.spin_for(FORWARD, 195, DEGREES)
+            while limit.value() == 1:
+                stretch.spin(REVERSE)
+            throw.spin_for(FORWARD,50,DEGREES)
             self.prepared = False
             self.is_stretching = False
         else:
             self.set_stop()
-            
+    
+    
+
 accepter = Accepter()
 while True:
     if not accepter.prepared:
-        accepter.prepare()
+        accepter.prepare(ir)
     else:
         objects = vision.take_snapshot(vision_1__SIG_1)
         if objects == None:
@@ -76,4 +85,23 @@ while True:
         else:
             objects = vision.largest_object()
             if objects.height > 30 and objects.width > 50:
-                accepter.shoot()
+                accepter.shoot(limit)
+
+
+
+    # if limit.value() == 0 and not is_stretched:
+    #     stretch.spin_for(FORWARD,500,DEGREES)
+    #     is_stretched = 1
+    # elif limit.value() == 1:
+    #     stretch.spin(REVERSE)
+    #     is_stretched = 0
+    # brain.screen.print(ir.value())
+    # if ir.value() == 0 :
+    #     throw.spin_for(FORWARD,30,DEGREES)
+    # elif ir.value() == 1:
+    #     throw.spin(FORWARD)
+    # brain.screen.print(ir.value())
+    # wait(0.2,SECONDS)
+    # brain.screen.clear_screen()
+    # brain.screen.set_cursor(1,1)
+
