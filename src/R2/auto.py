@@ -20,6 +20,8 @@ stretch = Motor(Ports.PORT2, GearSetting.RATIO_18_1, False)
 throw_1 = Motor(Ports.PORT4, GearSetting.RATIO_36_1, False)
 throw_2 = Motor(Ports.PORT3, GearSetting.RATIO_36_1, True)
 throw= MotorGroup(throw_1, throw_2)
+arm = Motor(Ports.PORT15, GearSetting.RATIO_36_1, False)
+arm.set_timeout(1,SECONDS)
 throw.set_stopping(HOLD)
 throw.set_velocity(40, PERCENT)
 throw.set_max_torque(100, PERCENT)
@@ -50,11 +52,18 @@ class Accepter:
         if self.is_stretching:
            self.set_stop()
         else:
-            # Thread(lambda: driver.drive_for(REVERSE, 30, MM))
-            # Thread(self.throw_prepare(ir))
+            Thread(lambda: driver.drive_for(REVERSE, 10, MM))
             Thread(self.stretch_prepare)
             self.throw_prepare(ir)
             self.prepared = True
+
+
+        
+            
+    def execute_preload(self): 
+        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        self.prepare(ir)
+        arm.spin_for(REVERSE,180,DEGREES)
         
 
     def set_stop(self):
@@ -75,6 +84,7 @@ class Accepter:
     
 
 accepter = Accepter()
+accepter.execute_preload()
 while True:
     if not accepter.prepared:
         accepter.prepare(ir)
