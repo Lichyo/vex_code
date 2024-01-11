@@ -1,5 +1,4 @@
 from vex import *
-
 left_motor_a = Motor(Ports.PORT5, GearSetting.RATIO_18_1, False)
 left_motor_b = Motor(Ports.PORT6, GearSetting.RATIO_18_1, False)
 left_wheels = MotorGroup(left_motor_a, left_motor_b)
@@ -9,70 +8,139 @@ right_wheels = MotorGroup(right_motor_a, right_motor_b)
 drivetrain_gps = Gps(Ports.PORT9, 160.00, 20.00, MM, 180)
 driver = SmartDrive(left_wheels, right_wheels, drivetrain_gps, 319.19, 320, 40, MM, 1)
 brain = Brain()
-controller = Controller()
+limit = DigitalIn(brain.three_wire_port.d)
+ir = DigitalIn(brain.three_wire_port.a)
 
+controller = Controller()
+driver.set_drive_velocity(70, PERCENT)
+roller = Motor(Ports.PORT10, GearSetting.RATIO_18_1, False)
 vision_1__SIG_1 = Signature(1, -4789, -4193, -4492,-5041, -4557, -4800,3.9, 0)
 vision = Vision(Ports.PORT1, 50, vision_1__SIG_1)
 stretch = Motor(Ports.PORT2, GearSetting.RATIO_18_1, False)
 throw_1 = Motor(Ports.PORT4, GearSetting.RATIO_36_1, False)
 throw_2 = Motor(Ports.PORT3, GearSetting.RATIO_36_1, True)
 throw= MotorGroup(throw_1, throw_2)
+arm = Motor(Ports.PORT15, GearSetting.RATIO_36_1, False)
+arm.set_timeout(1,SECONDS)
 throw.set_stopping(HOLD)
-throw.set_velocity(25, PERCENT)
+throw.set_velocity(40, PERCENT)
 throw.set_max_torque(100, PERCENT)
-stretch.set_velocity(90, PERCENT)
+stretch.set_velocity(80, PERCENT)
 stretch.set_stopping(COAST)
+stretch.set_timeout(1, SECONDS)
+throw.set_timeout(1, SECONDS)
+roller.set_velocity(80, PERCENT)
+is_strethced = False
+auto = True
 
-prepared = False
 
-def throw_prepare():
-    throw.spin_for(FORWARD, 220, DEGREES)
+class Accepter:
+    def __init__(self):
+        self.prepared = False
+        self.is_stretching = False
+    
+    def throw_prepare(self,ir):
+        while ir.value() == 1: 
+            throw.spin(FORWARD)
+        throw.stop()
+    def stretch_prepare(self):
+        if self.is_stretching:
+            pass
+        else:
+            self.is_stretching = True
+            stretch.spin_for(FORWARD, 540, DEGREES)
+    
+    def prepare(self,ir):
+        if self.is_stretching:
+           self.set_stop()
+        else:
+            Thread(lambda: driver.drive_for(REVERSE, 10, MM))
+            Thread(self.stretch_prepare)
+            self.throw_prepare(ir)
+            self.prepared = True
 
-def stretch_prepare():
-    stretch.spin_for(FORWARD, 900, DEGREES)
- 
-def prepare():
-    global prepared
-    Thread(throw_prepare)
-    Thread(stretch_prepare)
-    prepared = True
 
-def set_stop():
-    throw.stop()
-    stretch.stop()
+        
+            
+    def execute_preload(self): 
+        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        self.prepare(ir)
+        arm.spin_for(REVERSE,180,DEGREES)
+        
 
-def shoot():
-    global prepared
-    stretch.spin_for(REVERSE, 900, DEGREES)
-    throw.spin_for(FORWARD, 140, DEGREES)
-    prepared = False
+    def set_stop(self):
+        throw.stop()
+        stretch.stop()
+
+    def shoot(self, limit):
+        
+        if self.prepared:
+            while limit.value() == 1:
+                stretch.spin(REVERSE)
+            throw.spin_for(FORWARD,50,DEGREES)
+            self.prepared = False
+            self.is_stretching = False
+        else:
+            self.set_stop()
+    
+accepter = Accepter()
+accepter.execute_preload()
 
 while True:
-    if controller.buttonA.pressing():
-        if prepared:
-            shoot()
-            prepared = False
-    elif controller.buttonB.pressing():
-        if not prepared:
-            prepare()
-            prepared = True
-    else:
-        pass
-    
-    left_velocity = 0
-    right_velocity = 0
-    v = controller.axis3.position()
-    h = controller.axis4.position()
-    if v > 0:
-        left_velocity = v
-        right_velocity = v
-        if h > 0:
-            left_velocity += abs(h)
+    if controller.buttonX.pressing():
+        auto = not auto
+        wait(0.2, SECONDS)
+
+    if auto:
+        if not accepter.prepared:
+            accepter.prepare(ir)
         else:
-            right_velocity += abs(h)
-        left_wheels.set_velocity(left_velocity, RPM)
-        right_wheels.set_velocity(right_velocity, RPM)
-        left_wheels.spin(FORWARD)
-        right_wheels.spin(FORWARD)
+            objects = vision.take_snapshot(vision_1__SIG_1)
+            if objects == None:
+                pass
+            else:
+                objects = vision.largest_object()
+                if objects.height > 30 and objects.width > 50:
+                    accepter.shoot(limit)
     else:
-        driver.stop()
+        if controller.buttonDown.pressing():
+            stretch.spin(FORWARD)
+        elif controller.buttonUp.pressing():
+            stretch.spin(REVERSE)
+        else:
+            stretch.stop()
+                    
+        if controller.buttonA.pressing():
+            throw.spin(FORWARD)
+        else:
+            throw.stop()
+
+        if controller.buttonY.pressing():
+            roller.spin(FORWARD)
+        else:
+            roller.stop()
+
+        left_velocity = 0
+        right_velocity = 0
+        v = controller.axis3.position()
+        h = controller.axis4.position()
+        if v > 20:
+            left_velocity = v
+            right_velocity = v
+            if h > 0:
+                left_velocity += abs(h)
+            else:
+                right_velocity += abs(h)
+            left_wheels.set_velocity(left_velocity, RPM)
+            right_wheels.set_velocity(right_velocity, RPM)
+            left_wheels.spin(FORWARD)
+            right_wheels.spin(FORWARD)
+        elif v < -20:
+            driver.drive(REVERSE)
+        else:
+            if h > 20:
+                driver.turn(RIGHT)
+            elif h < -20:
+                driver.turn(LEFT)
+            else:
+                driver.stop()
