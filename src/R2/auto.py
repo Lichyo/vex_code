@@ -32,6 +32,7 @@ throw.set_timeout(1, SECONDS)
 is_strethced = False
 
 
+
 class Accepter:
     def __init__(self):
         self.prepared = False
@@ -82,10 +83,10 @@ class Accepter:
             self.set_stop()
     
     
-
+counter = 0
 accepter = Accepter()
 accepter.execute_preload()
-while True:
+while True and counter < 23:
     if not accepter.prepared:
         accepter.prepare(ir)
     else:
@@ -96,6 +97,12 @@ while True:
             objects = vision.largest_object()
             if objects.height > 30 and objects.width > 50:
                 accepter.shoot(limit)
+                counter = counter + 1
+
+driver.drive_for(FORWARD, 2000, MM)
+
+            
+            
 
 
 

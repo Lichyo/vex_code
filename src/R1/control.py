@@ -5,6 +5,8 @@ vision_20__SIG_1 = Signature(1, -6525, -6011, -6268,-5617, -5049, -5334,11, 0)
 vision = Vision(Ports.PORT14, 50, vision_20__SIG_1)
 controller = Controller()
 switch_direction = False
+left_wing_open = False
+right_wing_open = False
 
 def init_driver(switch_direction):
     drivetrain_gps = Gps(Ports.PORT13, 0.00, -40.00, MM, 0)
@@ -86,6 +88,33 @@ while True:
     else:
         wings.stop()
 
+    if controller.buttonL1.pressing():
+        if left_wing_open:
+            left_wing.spin_for(FORWARD, 230, DEGREES)
+            left_wing_open = not left_wing_open
+            wait(0.2,SECONDS)
+        elif not left_wing_open:
+            left_wing.spin_for(REVERSE, 200, DEGREES)
+            wait(0.2,SECONDS)
+            left_wing_open = not left_wing_open
+    else:
+        left_wing.stop()
+
+    if controller.buttonL2.pressing():
+        if right_wing_open:
+            right_wing.spin_for(FORWARD, 230, DEGREES)
+            left_wing_open = not left_wing_open
+            wait(0.2,SECONDS)
+        elif not right_wing_open:
+            right_wing.spin_for(REVERSE, 200, DEGREES)
+            left_wing_open = not left_wing_open
+            wait(0.2,SECONDS)
+    else:
+        left_wing.stop()
+
+    
+
+
     if controller.buttonA.pressing():
         hammer.spin(FORWARD)
     else:
@@ -106,7 +135,7 @@ while True:
     left_velocity = 0
     right_velocity = 0
     v = controller.axis3.position()
-    h = controller.axis4.position()
+    h = controller.axis2.position()
     if v > 10:
         left_velocity = v
         right_velocity = v
