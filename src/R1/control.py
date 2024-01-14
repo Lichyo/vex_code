@@ -43,6 +43,7 @@ wings.set_timeout(1,SECONDS)
 is_arrived = False 
 global is_wings_open
 is_wings_open = False
+is_wings_spin = 0
 
 def loading():
     arm.set_velocity(30, PERCENT)
@@ -80,37 +81,23 @@ while True:
         arm.stop()
 
     if controller.buttonX.pressing()and not is_wings_open:
-        wings.spin_for(REVERSE, 230, DEGREES)
+        is_wings_spin = -1
+        brain.timer.clear()
         is_wings_open = not is_wings_open
     elif controller.buttonY.pressing() and is_wings_open:
-        wings.spin_for(FORWARD, 230, DEGREES)
-        is_wings_open = not is_wings_open            
-    else:
-        wings.stop()
-
-    if controller.buttonL1.pressing():
-        if left_wing_open:
-            left_wing.spin_for(FORWARD, 230, DEGREES)
-            left_wing_open = not left_wing_open
-            wait(0.2,SECONDS)
-        elif not left_wing_open:
-            left_wing.spin_for(REVERSE, 200, DEGREES)
-            wait(0.2,SECONDS)
-            left_wing_open = not left_wing_open
-    else:
-        left_wing.stop()
-
-    if controller.buttonL2.pressing():
-        if right_wing_open:
-            right_wing.spin_for(FORWARD, 230, DEGREES)
-            left_wing_open = not left_wing_open
-            wait(0.2,SECONDS)
-        elif not right_wing_open:
-            right_wing.spin_for(REVERSE, 200, DEGREES)
-            left_wing_open = not left_wing_open
-            wait(0.2,SECONDS)
-    else:
-        left_wing.stop()
+        is_wings_spin = 1 
+        brain.timer.clear() 
+        is_wings_open = not is_wings_open
+    if is_wings_spin == -1 :
+        left_wing.spin(REVERSE)
+        if brain.timer.time(SECONDS) > 0.6:
+            left_wing.stop()
+            is_wings_spin = 0
+    if is_wings_spin == 1 : 
+        left_wing.spin(FORWARD)
+        if brain.timer.time(SECONDS) > 0.6:
+            left_wing.stop() 
+            is_wings_spin = 0
 
     
 
@@ -134,27 +121,11 @@ while True:
 
     left_velocity = 0
     right_velocity = 0
-    v = controller.axis3.position()
-    h = controller.axis2.position()
-    if v > 10:
-        left_velocity = v
-        right_velocity = v
-        if h > 10:
-            left_velocity += abs(h)
-        elif h < -10:
-            right_velocity += abs(h)
-        else:
-            pass
-        left_wheels.set_velocity(left_velocity, RPM)
-        right_wheels.set_velocity(right_velocity, RPM)
-        left_wheels.spin(FORWARD)
-        right_wheels.spin(FORWARD)
-    elif v < -10:
-        driver.drive(REVERSE, 120, RPM)
-    else:
-        if h > 10:
-            driver.turn(RIGHT)
-        elif h < -10:
-            driver.turn(LEFT)
-        else:
-            driver.stop()
+    v = controller.axis3.position()*1.25 
+    h = controller.axis1.position()*0.75
+    left_velocity = v + h 
+    right_velocity = v - h
+    left_wheels.set_velocity(left_velocity, RPM) 
+    right_wheels.set_velocity(right_velocity, RPM) 
+    left_wheels.spin(FORWARD) 
+    right_wheels.spin(FORWARD)

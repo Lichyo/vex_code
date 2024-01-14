@@ -120,27 +120,13 @@ while True:
         else:
             roller.stop()
 
-        left_velocity = 0
-        right_velocity = 0
-        v = controller.axis3.position()
-        h = controller.axis4.position()
-        if v > 20:
-            left_velocity = v
-            right_velocity = v
-            if h > 0:
-                left_velocity += abs(h)
-            else:
-                right_velocity += abs(h)
-            left_wheels.set_velocity(left_velocity, RPM)
-            right_wheels.set_velocity(right_velocity, RPM)
-            left_wheels.spin(FORWARD)
-            right_wheels.spin(FORWARD)
-        elif v < -20:
-            driver.drive(REVERSE)
-        else:
-            if h > 20:
-                driver.turn(RIGHT)
-            elif h < -20:
-                driver.turn(LEFT)
-            else:
-                driver.stop()
+    left_velocity = 0
+    right_velocity = 0
+    v = controller.axis3.position()*1.25 
+    h = controller.axis1.position()*0.75
+    left_velocity = v + h 
+    right_velocity = v - h
+    left_wheels.set_velocity(left_velocity, RPM) 
+    right_wheels.set_velocity(right_velocity, RPM) 
+    left_wheels.spin(FORWARD) 
+    right_wheels.spin(FORWARD)
