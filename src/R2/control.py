@@ -77,6 +77,7 @@ class Accepter:
         if self.prepared:
             while limit.value() == 1:
                 stretch.spin(REVERSE)
+            stretch.stop()
             throw.spin_for(FORWARD,50,DEGREES)
             self.prepared = False
             self.is_stretching = False
@@ -90,7 +91,7 @@ while True:
     if controller.buttonX.pressing():
         auto = not auto
         wait(0.2, SECONDS)
-
+        brain.screen.print("change")
     if auto:
         if not accepter.prepared:
             accepter.prepare(ir)
@@ -115,18 +116,53 @@ while True:
         else:
             throw.stop()
 
-        if controller.buttonY.pressing():
+        if controller.buttonR1.pressing():
             roller.spin(FORWARD)
         else:
             roller.stop()
 
-    left_velocity = 0
-    right_velocity = 0
-    v = controller.axis3.position()*1.25 
-    h = controller.axis1.position()*0.75
-    left_velocity = v + h 
-    right_velocity = v - h
-    left_wheels.set_velocity(left_velocity, RPM) 
-    right_wheels.set_velocity(right_velocity, RPM) 
-    left_wheels.spin(FORWARD) 
-    right_wheels.spin(FORWARD)
+        if controller.buttonL1.pressing():
+            arm.spin_for(FORWARD,180,DEGREES)
+        elif controller.buttonL2.pressing():
+            arm.spin_for(REVERSE,180,DEGREES)
+        else:
+            arm.stop
+
+        left_velocity = 0
+        right_velocity = 0
+        v = controller.axis3.position()
+        h = controller.axis4.position()
+        right_axis_h = controller.axis1.position()
+
+        left_velocity = abs(v)
+        right_velocity = abs(v)
+
+        if right_axis_h > 0:
+            left_velocity += abs(right_axis_h)
+        elif right_axis_h < 0:
+            right_velocity += abs(right_axis_h) 
+        elif h > 0:
+            left_velocity += abs(h)
+        else:
+            right_velocity += abs(h)    
+
+
+
+        if v >= 10:
+            left_wheels.spin(FORWARD,left_velocity, RPM)
+            right_wheels.spin(FORWARD,right_velocity, RPM)
+        elif v < -10:
+            left_velocity = round(0.8 * left_velocity)
+            right_velocity = round(0.8 * right_velocity)
+            left_wheels.spin(REVERSE,left_velocity, RPM)
+            right_wheels.spin(REVERSE,right_velocity, RPM)
+        else:           
+            if h < 0 or right_axis_h < 0:
+                left_wheels.spin(REVERSE,right_velocity, RPM)
+                right_wheels.spin(FORWARD,right_velocity, RPM)
+            elif h > 0 or right_axis_h > 0:
+                right_wheels.spin(REVERSE,left_velocity, RPM)
+                left_wheels.spin(FORWARD,left_velocity, RPM)
+            else:
+                right_wheels.stop()
+                left_wheels.stop()
