@@ -33,57 +33,55 @@ roller.set_velocity(80, PERCENT)
 is_strethced = False
 auto = True
 
-
 class Accepter:
     def __init__(self):
         self.prepared = False
         self.is_stretching = False
     
-    def throw_prepare(self,ir):
-        while ir.value() == 1: 
-            throw.spin(FORWARD)
-        throw.stop()
+    def throw_prepare(self):
+        throw.spin_for(FORWARD, 160, DEGREES)
+
     def stretch_prepare(self):
         if self.is_stretching:
             pass
         else:
             self.is_stretching = True
-            stretch.spin_for(FORWARD, 540, DEGREES)
+            stretch.spin_for(FORWARD, 470, DEGREES)
     
-    def prepare(self,ir):
+    def prepare(self):
         if self.is_stretching:
            self.set_stop()
         else:
-            Thread(lambda: driver.drive_for(REVERSE, 10, MM))
-            Thread(self.stretch_prepare)
-            self.throw_prepare(ir)
+            Thread(lambda: driver.drive_for(REVERSE, 2, MM))
+            Thread(self.throw_prepare)
+            self.stretch_prepare()
             self.prepared = True
-
-
-        
-            
-    def execute_preload(self):
-        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES))
-        self.prepare(ir)
-        arm.spin_for(REVERSE,180,DEGREES)
         
 
     def set_stop(self):
         throw.stop()
         stretch.stop()
 
-    def shoot(self, limit):
-        
+    def shoot(self):
         if self.prepared:
-            while limit.value() == 1:
-                stretch.spin(REVERSE)
-            stretch.stop()
-            throw.spin_for(FORWARD,50,DEGREES)
+            stretch.spin_for(REVERSE, 470, DEGREES)
+            throw.spin_for(FORWARD, 200, DEGREES)
+            throw.stop()
             self.prepared = False
             self.is_stretching = False
         else:
             self.set_stop()
-    
+            
+    def execute_preload(self): 
+        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        self.throw_prepare()
+        stretch.spin_for(FORWARD, 480, DEGREES)
+        arm.spin_for(REVERSE,180,DEGREES)
+        self.prepared = True
+        self.is_stretching = True
+        self.shoot()
+            
+
 accepter = Accepter()
 accepter.execute_preload()
 
@@ -94,15 +92,15 @@ while True:
         brain.screen.print("change")
     if auto:
         if not accepter.prepared:
-            accepter.prepare(ir)
+            accepter.prepare()
         else:
             objects = vision.take_snapshot(vision_1__SIG_1)
             if objects == None:
                 pass
             else:
                 objects = vision.largest_object()
-                if objects.height > 30 and objects.width > 50:
-                    accepter.shoot(limit)
+                if objects.height > 10 and objects.width > 20:
+                    accepter.shoot()
     else:
         if controller.buttonDown.pressing():
             stretch.spin(FORWARD)
@@ -166,3 +164,5 @@ while True:
             else:
                 right_wheels.stop()
                 left_wheels.stop()
+
+
