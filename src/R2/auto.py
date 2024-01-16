@@ -31,94 +31,66 @@ stretch.set_timeout(1, SECONDS)
 throw.set_timeout(1, SECONDS)
 is_strethced = False
 
-
-
 class Accepter:
     def __init__(self):
         self.prepared = False
         self.is_stretching = False
     
-    def throw_prepare(self,ir):
-        while ir.value() == 1: 
-            throw.spin(FORWARD)
-        throw.stop()
+    def throw_prepare(self):
+        throw.spin_for(FORWARD, 160, DEGREES)
+
     def stretch_prepare(self):
         if self.is_stretching:
             pass
         else:
             self.is_stretching = True
-            stretch.spin_for(FORWARD, 540, DEGREES)
+            stretch.spin_for(FORWARD, 800, DEGREES)
     
-    def prepare(self,ir):
+    def prepare(self):
         if self.is_stretching:
            self.set_stop()
         else:
             Thread(lambda: driver.drive_for(REVERSE, 10, MM))
-            Thread(self.stretch_prepare)
-            self.throw_prepare(ir)
+            Thread(self.throw_prepare)
+            self.stretch_prepare()
             self.prepared = True
-
-
-        
-            
-    def execute_preload(self): 
-        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
-        self.prepare(ir)
-        arm.spin_for(REVERSE,180,DEGREES)
         
 
     def set_stop(self):
         throw.stop()
         stretch.stop()
 
-    def shoot(self, limit):
-        
+    def shoot(self):
         if self.prepared:
-            while limit.value() == 1:
-                stretch.spin(REVERSE)
-            throw.spin_for(FORWARD,50,DEGREES)
+            stretch.spin_for(REVERSE, 800, DEGREES)
+            throw.spin_for(FORWARD, 200, DEGREES)
+            throw.stop()
             self.prepared = False
             self.is_stretching = False
         else:
             self.set_stop()
-    
-    
-counter = 0
+            
+    def execute_preload(self): 
+        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        self.throw_prepare()
+        stretch.spin_for(FORWARD, 730, DEGREES)
+        arm.spin_for(REVERSE,180,DEGREES)
+        self.prepared = True
+        self.is_stretching = True
+        self.shoot()
+            
 accepter = Accepter()
-accepter.execute_preload()
-while True and counter < 23:
+accepter.execute_preload()    
+while True:
     if not accepter.prepared:
-        accepter.prepare(ir)
+        accepter.prepare()
     else:
         objects = vision.take_snapshot(vision_1__SIG_1)
         if objects == None:
             pass
         else:
             objects = vision.largest_object()
-            if objects.height > 30 and objects.width > 50:
-                accepter.shoot(limit)
-                counter = counter + 1
+            if objects.height > 10 and objects.width > 20:
+                accepter.shoot()
 
-driver.drive_for(FORWARD, 2000, MM)
-
-            
-            
-
-
-
-    # if limit.value() == 0 and not is_stretched:
-    #     stretch.spin_for(FORWARD,500,DEGREES)
-    #     is_stretched = 1
-    # elif limit.value() == 1:
-    #     stretch.spin(REVERSE)
-    #     is_stretched = 0
-    # brain.screen.print(ir.value())
-    # if ir.value() == 0 :
-    #     throw.spin_for(FORWARD,30,DEGREES)
-    # elif ir.value() == 1:
-    #     throw.spin(FORWARD)
-    # brain.screen.print(ir.value())
-    # wait(0.2,SECONDS)
-    # brain.screen.clear_screen()
-    # brain.screen.set_cursor(1,1)
 
