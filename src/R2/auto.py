@@ -36,24 +36,33 @@ class Accepter:
         self.prepared = False
         self.is_stretching = False
     
-    def throw_prepare(self):
-        throw.spin_for(FORWARD, 160, DEGREES)
-
+    def throw_prepare(self,ir):
+        while ir.value() == 1: 
+            throw.spin(FORWARD)
+        throw.stop()
     def stretch_prepare(self):
         if self.is_stretching:
             pass
         else:
             self.is_stretching = True
-            stretch.spin_for(FORWARD, 800, DEGREES)
+            stretch.spin_for(FORWARD, 470, DEGREES)
     
-    def prepare(self):
+    def prepare(self,ir):
         if self.is_stretching:
            self.set_stop()
         else:
-            Thread(lambda: driver.drive_for(REVERSE, 10, MM))
-            Thread(self.throw_prepare)
-            self.stretch_prepare()
+            Thread(lambda: driver.drive_for(REVERSE, 2, MM))
+            Thread(self.stretch_prepare)
+            self.throw_prepare(ir)
             self.prepared = True
+
+
+        
+            
+    def execute_preload(self): 
+        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        self.prepare(ir)
+        arm.spin_for(REVERSE,180,DEGREES)
         
 
     def set_stop(self):
@@ -62,35 +71,28 @@ class Accepter:
 
     def shoot(self):
         if self.prepared:
-            stretch.spin_for(REVERSE, 800, DEGREES)
-            throw.spin_for(FORWARD, 200, DEGREES)
-            throw.stop()
+            stretch.spin_for(REVERSE, 470, DEGREES)
+            throw.spin_for(FORWARD,50,DEGREES)
             self.prepared = False
             self.is_stretching = False
         else:
             self.set_stop()
-            
-    def execute_preload(self): 
-        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
-        self.throw_prepare()
-        stretch.spin_for(FORWARD, 730, DEGREES)
-        arm.spin_for(REVERSE,180,DEGREES)
-        self.prepared = True
-        self.is_stretching = True
-        self.shoot()
-            
+    
+    
+counter = 0
 accepter = Accepter()
-accepter.execute_preload()    
-while True:
+accepter.execute_preload()
+while True and counter < 23:
     if not accepter.prepared:
-        accepter.prepare()
+        accepter.prepare(ir)
     else:
         objects = vision.take_snapshot(vision_1__SIG_1)
         if objects == None:
             pass
         else:
             objects = vision.largest_object()
-            if objects.height > 10 and objects.width > 20:
+            if objects.height > 30 and objects.width > 50:
                 accepter.shoot()
+                counter = counter + 1
 
-
+driver.drive_for(FORWARD, 2000, MM)
