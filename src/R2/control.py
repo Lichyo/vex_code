@@ -38,9 +38,10 @@ class Accepter:
         self.prepared = False
         self.is_stretching = False
     
-    def throw_prepare(self):
-        throw.spin_for(FORWARD, 160, DEGREES)
-
+    def throw_prepare(self,ir):
+        while ir.value() == 1: 
+            throw.spin(FORWARD)
+        throw.stop()
     def stretch_prepare(self):
         if self.is_stretching:
             pass
@@ -48,14 +49,22 @@ class Accepter:
             self.is_stretching = True
             stretch.spin_for(FORWARD, 470, DEGREES)
     
-    def prepare(self):
+    def prepare(self,ir):
         if self.is_stretching:
            self.set_stop()
         else:
             Thread(lambda: driver.drive_for(REVERSE, 2, MM))
-            Thread(self.throw_prepare)
-            self.stretch_prepare()
+            Thread(self.stretch_prepare)
+            self.throw_prepare(ir)
             self.prepared = True
+
+
+        
+            
+    def execute_preload(self): 
+        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        self.prepare(ir)
+        arm.spin_for(REVERSE,180,DEGREES)
         
 
     def set_stop(self):
@@ -65,22 +74,12 @@ class Accepter:
     def shoot(self):
         if self.prepared:
             stretch.spin_for(REVERSE, 470, DEGREES)
-            throw.spin_for(FORWARD, 200, DEGREES)
-            throw.stop()
+            throw.spin_for(FORWARD,50,DEGREES)
             self.prepared = False
             self.is_stretching = False
         else:
             self.set_stop()
-            
-    def execute_preload(self): 
-        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
-        self.throw_prepare()
-        stretch.spin_for(FORWARD, 480, DEGREES)
-        arm.spin_for(REVERSE,180,DEGREES)
-        self.prepared = True
-        self.is_stretching = True
-        self.shoot()
-            
+    
 
 accepter = Accepter()
 accepter.execute_preload()
@@ -92,7 +91,7 @@ while True:
         brain.screen.print("change")
     if auto:
         if not accepter.prepared:
-            accepter.prepare()
+            accepter.prepare(ir)
         else:
             objects = vision.take_snapshot(vision_1__SIG_1)
             if objects == None:
