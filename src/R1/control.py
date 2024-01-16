@@ -5,8 +5,26 @@ vision_20__SIG_1 = Signature(1, -6525, -6011, -6268,-5617, -5049, -5334,11, 0)
 vision = Vision(Ports.PORT14, 50, vision_20__SIG_1)
 controller = Controller()
 switch_direction = False
-left_wing_open = False
-right_wing_open = False
+
+class ButtonControl:
+    def __init__(self):
+        self.L1 = 'free'
+        self.L2 = 'free'
+        self.R1 = 'free' 
+        self.R2 = 'free'
+        self.x = 'free'
+        self.y = 'free'
+        self.a = 'free'
+        self.b = 'free'
+
+    def pressing(self, button, function):
+        if button == 'free':
+            button = 'pressing'
+            function()
+            button = 'free'
+        else:
+            return
+
 
 def init_driver(switch_direction):
     drivetrain_gps = Gps(Ports.PORT13, 0.00, -40.00, MM, 0)
@@ -29,13 +47,14 @@ roller.set_velocity(80,PERCENT)
 right_arm = Motor(Ports.PORT6, GearSetting.RATIO_18_1, True)
 left_arm = Motor(Ports.PORT13, GearSetting.RATIO_18_1, True)
 arm = MotorGroup(right_arm, left_arm)
-arm.set_max_torque(90,PERCENT)
+arm.set_max_torque(100,PERCENT)
+arm.set_stopping(HOLD)
 hammer = Motor(Ports.PORT4, GearSetting.RATIO_18_1, False)
 driver.set_drive_velocity(65, PERCENT)
 driver.set_turn_velocity(15, PERCENT)
 driver.set_stopping(COAST)
-left_wing = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
-right_wing = Motor(Ports.PORT5, GearSetting.RATIO_18_1, True)
+left_wing = Motor(Ports.PORT15, GearSetting.RATIO_18_1, True)
+right_wing = Motor(Ports.PORT5, GearSetting.RATIO_18_1, False)
 wings = MotorGroup(left_wing, right_wing)
 wings.set_max_torque(100,PERCENT)
 wings.set_velocity(40,PERCENT)
@@ -44,6 +63,10 @@ is_arrived = False
 global is_wings_open
 is_wings_open = False
 is_wings_spin = 0
+control = ButtonControl()
+
+def empty_function():
+    pass
 
 def loading():
     arm.set_velocity(30, PERCENT)
@@ -57,60 +80,45 @@ def loading():
     arm.stop()
 
 def open_wings():
-    global is_wings_open
-    if is_wings_open:
-        pass
-    else:
-        wings.spin_for(FORWARD, 230, DEGREES)
-        is_wings_open = not is_wings_open    
+    wings.spin_for(FORWARD, 230, DEGREES)
+    return
 
 def close_wings():
-    global is_wings_open
-    if is_wings_open:
-        wings.spin_for(REVERSE, 230, DEGREES)
-        is_wings_open = not is_wings_open   
+    wings.spin_for(REVERSE, 230, DEGREES)
+    return
 
+def right_wing_open():
+    brain.screen.print('right_wing_open()')
+    brain.screen.next_row()
+    right_wing.spin_for(FORWARD, 230, DEGREES)
+    return
 
+def left_wing_open():
+    brain.screen.print('left_wing_open()')
+    brain.screen.next_row()
+    left_wing.spin_for(FORWARD, 230, DEGREES)
+    return
 
+def right_wing_close():
+    brain.screen.print('right_wing_close()')
+    brain.screen.next_row()
+    right_wing.spin_for(REVERSE, 230, DEGREES)
+    return
+
+def left_wing_close():
+    brain.screen.print('left_wing_close()')
+    brain.screen.next_row()
+    left_wing.spin_for(REVERSE, 230, DEGREES)
+    return
+
+thread = Thread(empty_function)
 while True:
-    if controller.buttonUp.pressing():
+    if controller.buttonL1.pressing():
         arm.spin(FORWARD)
-    elif controller.buttonDown.pressing():
+    elif controller.buttonL2.pressing():
         arm.spin(REVERSE)
     else:
         arm.stop()
-
-    if controller.buttonX.pressing()and not is_wings_open:
-        is_wings_spin = -1
-        brain.timer.clear()
-        is_wings_open = not is_wings_open
-    elif controller.buttonY.pressing() and is_wings_open:
-        is_wings_spin = 1 
-        brain.timer.clear() 
-        is_wings_open = not is_wings_open
-    if is_wings_spin == -1 :
-        left_wing.spin(REVERSE)
-        if brain.timer.time(SECONDS) > 0.6:
-            left_wing.stop()
-            is_wings_spin = 0
-    if is_wings_spin == 1 : 
-        left_wing.spin(FORWARD)
-        if brain.timer.time(SECONDS) > 0.6:
-            left_wing.stop() 
-            is_wings_spin = 0
-
-    
-
-
-    if controller.buttonA.pressing():
-        hammer.spin(FORWARD)
-    else:
-        hammer.stop()
-    
-    if controller.buttonB.pressing():
-        switch_direction = not switch_direction
-        driver, left_wheels, right_wheels = init_driver(switch_direction= switch_direction)
-        wait(0.3, SECONDS)
 
     if controller.buttonR1.pressing():
         roller.spin(FORWARD)
@@ -118,6 +126,37 @@ while True:
         roller.spin(REVERSE)
     else:
         roller.stop()
+
+    if controller.buttonDown.pressing():
+        driver, left_wheels, right_wheels = init_driver(False)
+        
+    if controller.buttonUp.pressing():
+        driver, left_wheels, right_wheels = init_driver(True)
+        
+    if controller.buttonX.pressing():
+        thread.stop()
+        thread = Thread(lambda: control.pressing(control.b, left_wing_open))
+    else:
+        pass
+
+    if controller.buttonY.pressing():
+        thread.stop()
+        thread = Thread(lambda: control.pressing(control.y, left_wing_close))
+    else:
+        pass
+
+    if controller.buttonA.pressing():
+        thread.stop()
+        thread = Thread(lambda: control.pressing(control.a, right_wing_open))
+    else:
+        pass
+
+    if controller.buttonB.pressing():
+        thread.stop()
+        thread = Thread(lambda: control.pressing(control.x, right_wing_close))
+    else:
+        pass
+
 
     left_velocity = 0
     right_velocity = 0
