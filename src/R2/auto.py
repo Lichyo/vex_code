@@ -133,6 +133,26 @@ class Axis:
             driver.drive_for(FORWARD, 150, MM)
         driver.stop()
         return
+    
+    def to_another_loading_area(self):
+        driver.drive_for(FORWARD, 150, MM)
+        wait(0.1, SECONDS)
+        drivetrain_gps.calibrate()
+        wait(0.1, SECONDS)
+        axis.set_target(0, 200)
+        wait(0.1, SECONDS)
+        driver.set_turn_velocity(20, PERCENT)
+        driver.turn_to_heading(axis.theta)
+        driver.set_drive_velocity(75, PERCENT)
+        driver.drive_for(FORWARD, 1300, MM)
+        axis.set_target(-1000, 1700)
+        wait(0.1, SECONDS)
+        driver.set_drive_velocity(75, PERCENT)
+        driver.set_turn_velocity(20, PERCENT)
+        driver.turn_to_heading(axis.theta)
+        driver.drive_for(FORWARD, 1400, MM)
+        driver.turn_to_heading(120)
+        driver.drive_for(REVERSE, 380, MM)
 
 def adjust_direction(angles):
     driver.set_turn_velocity(10, PERCENT)
@@ -168,13 +188,12 @@ class Accepter:
             self.throw_prepare(ir)
             self.prepared = True
 
-
-        
-            
     def execute_preload(self): 
-        Thread(lambda: arm.spin_for(FORWARD,180,DEGREES) )
+        arm.set_stopping(HOLD)
+        arm.spin_for(FORWARD,160,DEGREES)
+        arm.stop()
         self.prepare(ir)
-        arm.spin_for(REVERSE,180,DEGREES)
+        arm.spin_for(REVERSE,160,DEGREES)
         
 
     def set_stop(self):
@@ -184,45 +203,36 @@ class Accepter:
     def shoot(self):
         if self.prepared:
             throw.set_velocity(60, PERCENT)
-            stretch.spin_for(REVERSE, 450, DEGREES)
+            stretch.spin_for(REVERSE, 470, DEGREES)
             throw.spin_for(FORWARD,50,DEGREES)
             self.prepared = False
             self.is_stretching = False
         else:
             self.set_stop()
-    
-    
+throw.set_stopping(HOLD)
 counter = 0
 axis = Axis()
 accepter = Accepter()
-# accepter.execute_preload()
-# while True and counter < 23:
-#     if not accepter.prepared:
-#         accepter.prepare(ir)
-#     else:
-#         objects = vision.take_snapshot(vision_1__SIG_1)
-#         if objects == None:
-#             pass
-#         else:
-#             objects = vision.largest_object()
-#             if objects.height > 30 and objects.width > 50:
-#                 accepter.shoot()
-#                 counter = counter + 1
-driver.drive_for(FORWARD, 150, MM)
-drivetrain_gps.calibrate()
-wait(0.2, SECONDS)
-axis.set_target(0, 0)
-wait(0.1, SECONDS)
-driver.set_turn_velocity(20, PERCENT)
-driver.turn_to_heading(axis.theta)
-driver.set_drive_velocity(50, PERCENT)
-driver.drive_for(FORWARD, 1400, MM)
-axis.set_target(-1200, 1500)
-wait(0.1, SECONDS)
-driver.set_drive_velocity(20, PERCENT)
-driver.set_turn_velocity(20, PERCENT)
-driver.turn_to_heading(axis.theta)
-driver.set_drive_velocity(50, PERCENT)
-driver.drive_for(FORWARD, 1400, MM)
-driver.turn_to_heading(120)
-driver.drive_for(REVERSE, 400, MM)
+accepter.execute_preload()
+arm.spin_for(FORWARD, 90, DEGREES)
+while True:
+    if counter < 20:
+        if not accepter.prepared:
+            accepter.prepare(ir)
+        else:
+            objects = vision.take_snapshot(vision_1__SIG_1)
+            if objects == None:
+                pass
+            else:
+                objects = vision.largest_object()
+                if objects.height > 30 and objects.width > 50:
+                    accepter.shoot()
+                    counter = counter + 1
+    else:
+        counter = 0
+        # throw.stop()
+        # axis.to_another_loading_area()
+        # accepter.execute_preload()
+        # arm.spin_for(FORWARD, 90, DEGREES)
+        # counter = 0
+
