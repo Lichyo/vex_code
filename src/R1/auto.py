@@ -140,11 +140,15 @@ class Axis:
             return True
         else:
             return False
-    def move_to_target(self,):
+    def move_to_target(self,need_to_open_wings = False):
         driver.set_drive_velocity(35, PERCENT)
         while not self.check_location():
             adjust_direction(self.theta)
             driver.drive_for(FORWARD, 150, MM)
+            if need_to_open_wings:
+                if axis.y < 500:
+                    right_wing.spin_for(FORWARD, 230, DEGREES)
+                    is_wings_open = True
         driver.stop()
         return
 
@@ -175,17 +179,17 @@ def close_wings():
         wings.stop()
         is_wings_open = not is_wings_open    
 
-def rush(x,y, need_open_wings = False, strong = False):
+def rush(x,y, need_open_wings = False, strong = False, backward_distance = 300):
     axis.set_target(x,y)
     axis.update()
-    driver.set_drive_velocity(70,PERCENT)
+    driver.set_drive_velocity(75,PERCENT)
     Thread(close_wings)
-    driver.drive_for(REVERSE,500,MM)
+    driver.drive_for(REVERSE,backward_distance,MM)
     adjust_direction(axis.theta)
     if need_open_wings:
         Thread(open_wings)
     adjust_direction(axis.theta)
-    driver.set_timeout(1.2,SECONDS)
+    driver.set_timeout(1.3,SECONDS)
     rush_distance = 1100
     if strong:
         rush_distance = 1700
@@ -228,12 +232,12 @@ arm.set_stopping(HOLD)
 arm.stop()
 roller.spin_for(REVERSE,350,DEGREES)
 # loading()
-loading()
-loading()
-loading()
-loading()
-loading()
-loading()
+# loading()
+# loading()
+# loading()
+# loading()
+# loading()
+# loading()
 
 driver.set_timeout(3, SECONDS)
 roller.stop()
@@ -247,27 +251,35 @@ axis.set_target(1200,1500)
 while axis.x < 750:
     driver.drive(FORWARD)
 driver.stop()
-driver.turn_for(RIGHT,60,DEGREES)
+driver.turn_for(RIGHT,70,DEGREES)
 right_wing.spin_for(FORWARD, 230, DEGREES)
 is_wings_open = True
 driver.set_timeout(2,SECONDS)
-axis.set_target(1500, 800)
+axis.set_target(1425, 800)
 arm.set_stopping(HOLD)
-arm.spin_for(FORWARD,90,DEGREES)
+arm.spin_for(FORWARD,80,DEGREES)
 arm.stop()
+driver.turn_to_heading(axis.theta)
+driver.drive_for(FORWARD,650,MM)
 axis.move_to_target()
-driver.turn_to_heading(220)
-driver.set_timeout(2.5,SECONDS)
-rush(1700,500)
-rush(1725,500)
-rush(1700,500)
-driver.drive_for(REVERSE, 600,MM)
-driver.turn_to_heading(270)
-open_wings()
-axis.set_target(400,200)
-axis.move_to_target()
-driver.turn_to_heading(90)
+driver.turn_to_heading(180)
+Thread(close_wings)
+driver.set_timeout(2.3,SECONDS)
+rush(1570,500)
+rush(1555,500)
+rush(1580,500)
+driver.drive_for(REVERSE, 500,MM)
+left_wing.spin_for(FORWARD, 230, DEGREES)
+driver.turn_to_heading(290)
+axis.set_target(300,200)
+driver.turn_to_heading(axis.theta)
+driver.drive_for(FORWARD, 800 ,MM)
+axis.move_to_target(need_to_open_wings = True)
+driver.turn_to_heading(70)
 close_wings()
-rush(1300,0, need_open_wings = True, strong = True)
-rush(1300,0, need_open_wings = True, strong = True)
-driver.drive_for(REVERSE,100,MM)
+rush(1300,0, need_open_wings = True, strong = True, backward_distance = 400)
+driver.turn_to_heading(90)
+rush(1300,0, need_open_wings = True, strong = True, backward_distance = 600)
+driver.turn_to_heading(90)
+rush(1300,0, need_open_wings = True, strong = True, backward_distance = 600)
+driver.drive_for(REVERSE,200,MM)
