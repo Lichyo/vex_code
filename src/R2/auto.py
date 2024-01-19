@@ -137,18 +137,17 @@ class Axis:
     def to_another_loading_area(self):
         driver.drive_for(FORWARD, 150, MM)
         wait(0.1, SECONDS)
-        drivetrain_gps.calibrate()
-        wait(0.1, SECONDS)
         axis.set_target(0, 200)
-        wait(0.1, SECONDS)
-        driver.set_turn_velocity(20, PERCENT)
+        axis.update()
+        driver.set_turn_velocity(15, PERCENT)
         driver.turn_to_heading(axis.theta)
-        driver.set_drive_velocity(75, PERCENT)
+        driver.set_drive_velocity(90, PERCENT)
         driver.drive_for(FORWARD, 1300, MM)
         axis.set_target(-1000, 1700)
+        axis.update()
         wait(0.1, SECONDS)
-        driver.set_drive_velocity(75, PERCENT)
-        driver.set_turn_velocity(20, PERCENT)
+        driver.set_drive_velocity(90, PERCENT)
+        driver.set_turn_velocity(15, PERCENT)
         driver.turn_to_heading(axis.theta)
         driver.drive_for(FORWARD, 1400, MM)
         driver.turn_to_heading(120)
@@ -214,9 +213,8 @@ counter = 0
 axis = Axis()
 accepter = Accepter()
 accepter.execute_preload()
-arm.spin_for(FORWARD, 90, DEGREES)
 while True:
-    if counter < 20:
+    if counter < 23:
         if not accepter.prepared:
             accepter.prepare(ir)
         else:
@@ -230,9 +228,7 @@ while True:
                     counter = counter + 1
     else:
         counter = 0
-        # throw.stop()
-        # axis.to_another_loading_area()
-        # accepter.execute_preload()
-        # arm.spin_for(FORWARD, 90, DEGREES)
-        # counter = 0
-
+        throw.stop()
+        axis.to_another_loading_area()
+        accepter.execute_preload()
+        arm.spin_for(FORWARD, 90, DEGREES)
