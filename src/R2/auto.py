@@ -19,12 +19,16 @@ throw_2 = Motor(Ports.PORT3, GearSetting.RATIO_36_1, True)
 throw= MotorGroup(throw_1, throw_2)
 arm = Motor(Ports.PORT15, GearSetting.RATIO_36_1, False)
 arm.set_timeout(1,SECONDS)
+arm.set_stopping(COAST)
 throw.set_stopping(HOLD)
 throw.set_max_torque(100, PERCENT)
+throw.set_timeout(2,SECONDS)
 stretch.set_velocity(100, PERCENT)
 stretch.set_stopping(COAST)
-stretch.set_timeout(1, SECONDS)
+stretch.set_timeout(2, SECONDS)
 throw.set_timeout(1, SECONDS)
+driver.set_stopping(HOLD)
+driver.stop()
 is_strethced = False
 
 class Axis:
@@ -161,8 +165,8 @@ class Accepter:
         if self.is_stretching:
             pass
         else:
-            self.is_stretching = True
             stretch.spin_for(FORWARD, 470, DEGREES)
+            self.is_stretching = True
     
     def prepare(self,ir):
         if self.is_stretching:
@@ -179,6 +183,8 @@ class Accepter:
         arm.stop()
         self.prepare(ir)
         arm.spin_for(REVERSE,160,DEGREES)
+        arm.set_stopping(COAST)
+        arm.stop()
         
 
     def set_stop(self):
@@ -194,7 +200,6 @@ class Accepter:
             self.is_stretching = False
         else:
             self.set_stop()
-throw.set_stopping(HOLD)
 counter = 0
 axis = Axis()
 accepter = Accepter()
@@ -217,4 +222,6 @@ while True:
         throw.stop()
         axis.to_another_loading_area()
         accepter.execute_preload()
+        arm.set_stopping(HOLD)
         arm.spin_for(FORWARD, 90, DEGREES)
+        arm.stop()
