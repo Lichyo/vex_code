@@ -54,8 +54,8 @@ def autonomous():
     throw.set_max_torque(100, PERCENT)
     throw.set_timeout(2,SECONDS)
     stretch.set_velocity(100, PERCENT)
-    stretch.set_stopping(COAST)
-    stretch.set_timeout(2, SECONDS)
+    stretch.set_stopping(HOLD)
+    stretch.set_timeout(1.2, SECONDS)
     throw.set_timeout(1, SECONDS)
     driver.set_stopping(HOLD)
     driver.stop()
@@ -164,13 +164,17 @@ def autonomous():
             return
         
         def to_another_loading_area(self):
-            driver.drive_for(FORWARD, 450, MM)
+            driver.drive_for(FORWARD, 420, MM)
             driver.set_turn_velocity(20, PERCENT)
             driver.turn_to_heading(0)
             driver.set_drive_velocity(90, PERCENT)
-            driver.drive_for(FORWARD, 2400, MM)
+            while axis.y < 850:
+                driver.drive(FORWARD)
+                axis.update()
+            driver.stop()
             driver.turn_to_heading(120)
-            driver.drive_for(REVERSE, 450, MM)
+            driver.set_drive_velocity(40,PERCENT)
+            driver.drive_for(REVERSE, 550, MM)
 
     def adjust_direction(angles):
         driver.set_turn_velocity(10, PERCENT)
@@ -191,10 +195,9 @@ def autonomous():
             throw.stop()
             
         def stretch_prepare(self):
-            if self.is_stretching:
-                pass
-            else:
-                stretch.spin_for(FORWARD, 470, DEGREES)
+            if not self.is_stretching:
+                stretch.spin_for(FORWARD, 440, DEGREES)
+                thread = Thread(lambda: stretch.stop)
                 self.is_stretching = True
         
         def prepare(self,ir):
@@ -212,7 +215,6 @@ def autonomous():
             arm.stop()
             self.prepare(ir)
             arm.spin_for(REVERSE,160,DEGREES)
-            arm.set_stopping(COAST)
             arm.stop()
             
 
@@ -223,7 +225,8 @@ def autonomous():
         def shoot(self):
             if self.prepared:
                 throw.set_velocity(60, PERCENT)
-                stretch.spin_for(REVERSE, 470, DEGREES)
+                stretch.spin_for(REVERSE, 440, DEGREES)
+                thread = Thread(lambda: stretch.stop)
                 throw.spin_for(FORWARD,50,DEGREES)
                 self.prepared = False
                 self.is_stretching = False
@@ -233,6 +236,7 @@ def autonomous():
     axis = Axis()
     accepter = Accepter()
     accepter.execute_preload()
+    thread_info = Thread(axis.info)
     while True:
         if counter < 23:
             if not accepter.prepared:
@@ -247,12 +251,12 @@ def autonomous():
                         accepter.shoot()
                         counter = counter + 1
         else:
+            stretch.stop()
             counter = 0
             throw.stop()
             axis.to_another_loading_area()
             accepter.execute_preload()
             arm.set_stopping(HOLD)
-            arm.spin_for(FORWARD, 90, DEGREES)
             arm.stop()
 
 def user_control():
