@@ -2,6 +2,32 @@
 from vex import *
 import urandom
 
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
 
 from vex import *
 brain=Brain()
@@ -248,25 +274,27 @@ def autonomous():
 
     # execute_preload()
     wings.set_timeout(1,SECONDS)
-    arm.spin_for(FORWARD,60,DEGREES)
+    arm.spin_for(FORWARD,40,DEGREES)
     arm.set_stopping(HOLD)
     arm.stop()
     driver.set_stopping(HOLD)
     driver.stop()
-    roller.spin_for(REVERSE,350,DEGREES)
-    # loading()
-    # loading()
-    # loading()
-    # loading()
-    # loading()
-    # loading()
+    roller.spin_for(REVERSE,380,DEGREES)
+    loading()
+    loading()
+    loading()
+    loading()
+    loading()
+    loading()
+    loading()
+    loading()
     wait(0.2,SECONDS)
     
     driver.set_timeout(3, SECONDS)
     roller.stop()
     arm.set_stopping(COAST)
     arm.stop()
-    driver.set_turn_velocity(20, PERCENT)
+    driver.set_turn_velocity(25, PERCENT)
     driver.turn_to_heading(70)
     driver.set_drive_velocity(80,PERCENT)
     left_wing.spin_for(FORWARD, 230, DEGREES)
@@ -277,27 +305,31 @@ def autonomous():
     driver.turn_to_heading(150)
     right_wing.spin_for(FORWARD, 230, DEGREES)
     driver.set_timeout(2,SECONDS)
-    axis.set_target(1425, 800)
+    axis.set_target(1450, 800)
     arm.set_stopping(HOLD)
     arm.spin_for(FORWARD,80,DEGREES)
     arm.stop()
     driver.set_timeout(2,SECONDS)
     driver.turn_to_heading(axis.theta)
+    driver.set_drive_velocity(65,PERCENT)
     driver.drive_for(FORWARD,1000,MM)
     thread.stop()
     thread = Thread(close_wings)
     # axis.move_to_target()
-    driver.turn_to_heading(170)
+    driver.turn_to_heading(160)
     driver.set_timeout(2.3,SECONDS)
+    driver.drive_for(FORWARD,500,MM)
     rush(1650,500,thread,backward_distance = 200)
     rush(1600,500,thread,backward_distance = 200)
-    rush(1630,500,thread,backward_distance = 300)
+    rush(1580,500,thread,backward_distance = 300)
     driver.drive_for(REVERSE, 600,MM)
     thread.stop()
     thread = Thread(lambda:left_wing.spin_for(FORWARD, 230, DEGREES))
     # driver.turn_to_heading(225)
     axis.set_target(300,100)
-    driver.turn_to_heading(axis.theta)
+    turn_angle = axis.theta
+    driver.turn_to_heading(turn_angle)
+    driver.set_drive_velocity(65,PERCENT)
     driver.drive_for(FORWARD, 1100 ,MM)
     driver.turn_to_heading(80)
     rush(1300,0, thread, need_open_wings = True, strong = True, backward_distance = 0)
